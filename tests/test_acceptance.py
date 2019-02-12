@@ -369,15 +369,9 @@ class MoreliaSuite(TestCase):
         self.assertEqual(["beach", "beach", "beach", "hotel", "hotel", "hotel"], zones)
 
     def test_harvest(self):
-        r = Row(r"\|", "")
-
-        def harvest(predicate):
-            r.predicate = predicate
-            return r.harvest()
-
-        self.assertEqual(["crock", "of"], harvest("crock | of"))
-        self.assertEqual(["crock", "of"], harvest("crock | of |"))
-        self.assertEqual([r"crane \| wife", "three"], harvest(r"crane \| wife | three"))
+        self.assertEqual(["crock", "of"], Row(r"\|", "crock | of").harvest())
+        self.assertEqual(["crock", "of"], Row(r"\|", "crock | of |").harvest())
+        self.assertEqual([r"crane \| wife", "three"], Row(r"\|", r"crane \| wife | three").harvest())
 
     def step_party_zone(self, zone):
         r"party (\w+)"
@@ -458,10 +452,8 @@ class MoreliaSuite(TestCase):
         s.line_number = 42
         matcher = RegexpStepMatcher(self).add_matcher(MethodNameStepMatcher(self))
         visitor = TestVisitor(self, matcher, NullFormatter())
-        matcher = self._get_default_machers()
-
         try:
-            visitor.visit(s)
+            visitor.visit_step(s)
             assert False  # should raise!  # pragma: nocover
         except ZeroDivisionError as e:
             assert "Given: exceptional" in str(e)
@@ -508,7 +500,7 @@ class MoreliaSuite(TestCase):
         self.youth = "boys"
         matcher = self._get_default_machers()
         visitor = TestVisitor(self, matcher, NullFormatter())
-        visitor.visit(step)
+        visitor.visit_step(step)
         self.assertEqual("girls", self.youth)  # Uh...
 
     def step_multiline_predicate(self):
@@ -523,7 +515,7 @@ class MoreliaSuite(TestCase):
         steps = Parser(language=language).parse_feature(feature)
         matcher = self._get_default_machers()
         visitor = TestVisitor(self, matcher, NullFormatter())
-        visitor.visit(steps[0])
+        visitor.visit_step(steps[0])
 
     def test_record_filename(self):
         language = self._get_language()

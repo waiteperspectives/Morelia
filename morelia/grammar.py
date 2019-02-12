@@ -21,17 +21,8 @@ class INode:
         """
         pass
 
-    def accept(self, visitor):
-        """Iterate through grammar tree accepting visitor.
-
-        :param IVisitor visitor: visitor object
-        """
-        try:
-            visitor.visit(self)
-            for step in self.steps:
-                step.accept(visitor)
-        finally:
-            visitor.after_visit(self)
+    def __repr__(self):
+        return self.keyword + self.get_real_reconstruction()
 
 
 class LabeledNode:
@@ -161,6 +152,9 @@ class Feature(Morelia):
         recon += "\n" if recon[-1] != "\n" else ""
         return recon
 
+    def accept(self, visitor):
+        visitor.visit_feature(self, self.steps)
+
 
 class Scenario(Morelia):
     def my_parent_type(self):
@@ -176,7 +170,7 @@ class Scenario(Morelia):
 
         for indices in schedule:
             self.row_indices = indices
-            super().accept(visitor)
+            visitor.visit_scenario(self, self.steps)
 
     def permute_schedule(self):
         dims = self.count_Row_dimensions()
@@ -193,12 +187,6 @@ class Background(Morelia):
     def my_parent_type(self):
         return Feature
 
-    def accept(self, visitor):
-        try:
-            visitor.visit(self)
-        finally:
-            visitor.after_visit(self)
-
     def prepend_steps(self, scenario):
         try:
             return scenario.background_steps
@@ -212,6 +200,9 @@ class Background(Morelia):
             scenario.background_steps = background_steps
             return background_steps
 
+    def accept(self, visitor):
+        visitor.visit_background(self)
+
 
 class Step(Morelia):
     def __init__(self, *args, **kwargs):
@@ -223,6 +214,9 @@ class Step(Morelia):
 
     def my_parent_type(self):
         return (Scenario, Background)
+
+    def accept(self, visitor):
+        visitor.visit_step(self, self.steps)
 
     def find_step(self, matcher):
         """Find method matching step.
@@ -315,6 +309,15 @@ class But(And):
 
 
 class Row(Morelia):
+
+    def accept(self, visitor):
+        visitor.visit_row(self)
+
+    def harvest(self):
+        row = re.split(r" \|", re.sub(r"\|$", "", self.predicate))
+        row = [s.strip() for s in row]
+        return row
+
     @classmethod
     def get_pattern(cls, language):
         return r"\s*(?P<keyword>\|):?\s+(?P<predicate>.*)"
@@ -331,15 +334,10 @@ class Row(Morelia):
         return recon
 
     def count_dimension(self):
-        if self is self.parent.steps[0]:
-            # header row
-            return 0
-        return 1
+        return 0 if self.__is_header() else 1
 
-    def harvest(self):
-        row = re.split(r" \|", re.sub(r"\|$", "", self.predicate))
-        row = [s.strip() for s in row]
-        return row
+    def __is_header(self):
+        return (self is self.parent.steps[0])
 
 
 class Examples(Morelia):
@@ -348,6 +346,9 @@ class Examples(Morelia):
 
     def my_parent_type(self):
         return Scenario
+
+    def accept(self, visitor):
+        visitor.visit_examples(self, self.steps)
 
 
 class Comment(Morelia):
@@ -365,6 +366,9 @@ class Comment(Morelia):
         recon = "    # " + self.predicate
         recon += "\n" if recon[-1] != "\n" else ""
         return recon
+
+    def accept(self, visitor):
+        visitor.visit_comment(self)
 
 
 def _special_range(n):

@@ -92,5 +92,5 @@ class TestVisitorVisitTestCase(unittest.TestCase):
         node.find_step.side_effect = [SystemExit]
         # Act
         # Assert
-        self.assertRaises(SystemExit, obj.visit, node)
+        self.assertRaises(SystemExit, obj.visit_step, node)
         formatter.output.assert_called_once_with(node, ANY, "error", ANY)

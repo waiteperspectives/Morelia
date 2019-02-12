@@ -1,36 +1,18 @@
 import inspect
 import sys
-import traceback
-from gettext import ngettext
-from abc import ABCMeta, abstractmethod
-from collections import OrderedDict
 import time
+import traceback
+from collections import OrderedDict
+from gettext import ngettext
 
-from morelia.grammar import Feature, Scenario, Step
 from morelia.exceptions import MissingStepError
-
-
-class IVisitor:
-
-    __metaclass__ = ABCMeta
-
-    def permute_schedule(self, node):
-        return [[0]]
-
-    @abstractmethod
-    def visit(self, node):
-        pass  # pragma: nocover
-
-    @abstractmethod
-    def after_visit(self, node):
-        pass  # pragma: nocover
 
 
 def noop():
     pass
 
 
-class TestVisitor(IVisitor):
+class TestVisitor:
     """Visits all steps and run step methods."""
 
     def __init__(self, suite, matcher, formatter):
@@ -47,23 +29,12 @@ class TestVisitor(IVisitor):
         self._scenario_exception = None
         self._steps_num = 0
 
-    def visit(self, node):
-        # no support for single dispatch for methods in python yet
-        if isinstance(node, Feature):
+    def visit_feature(self, node, children=[]):
+        try:
             self._feature_visit(node)
-        elif isinstance(node, Scenario):
-            self._scenario_visit(node)
-        elif isinstance(node, Step):
-            self._step_visit(node)
-        else:
-            line = node.get_real_reconstruction()
-            self._formatter.output(node, line, "", 0)
-
-    def after_visit(self, node):
-        if isinstance(node, Feature):
+            self.__visit_children(children)
+        finally:
             self._feature_after_visit(node)
-        elif isinstance(node, Scenario):
-            self._scenario_after_visit(node)
 
     def _feature_visit(self, node):
         self._exceptions = []
@@ -93,6 +64,27 @@ class TestVisitor(IVisitor):
                 "\n", "\n    "
             )
         assert self._scenarios_failed == 0, msg
+
+    def visit_scenario(self, node, children=[]):
+        try:
+            self._scenario_visit(node)
+            self.__visit_children(children)
+        finally:
+            self._scenario_after_visit(node)
+
+    def visit_step(self, node, children=[]):
+        self._step_visit(node)
+        self.__visit_children(children)
+
+    def visit(self, node, children=[]):
+        line = node.get_real_reconstruction()
+        self._formatter.output(node, line, "", 0)
+        self.__visit_children(children)
+    visit_background = visit_row = visit_examples = visit_comment = visit
+
+    def __visit_children(self, children):
+        for child in children:
+            child.accept(self)
 
     def _scenario_visit(self, node):
         self._scenario_exception = None
@@ -160,7 +152,7 @@ class TestVisitor(IVisitor):
         return node.permute_schedule()
 
 
-class StepMatcherVisitor(IVisitor):
+class StepMatcherVisitor:
     """Visits all steps in order to find missing step methods."""
 
     def __init__(self, suite, matcher):
@@ -168,7 +160,7 @@ class StepMatcherVisitor(IVisitor):
         self._not_matched = OrderedDict()
         self._matcher = matcher
 
-    def visit(self, node):
+    def visit(self, node, children=[]):
         try:
             node.find_step(self._matcher)
         except MissingStepError as e:
@@ -176,9 +168,9 @@ class StepMatcherVisitor(IVisitor):
                 self._not_matched[e.docstring] = e.suggest
             else:
                 self._not_matched[e.method_name] = e.suggest
-
-    def after_visit(self, node):
-        pass
+            for child in children:
+                child.accept(self)
+    visit_feature = visit_scenario = visit_step = visit
 
     def report_missing(self):
         suggest = "".join(self._not_matched.values())
