@@ -4,7 +4,7 @@ from unittest import TestCase
 
 from morelia import run
 from morelia.decorators import tags
-from morelia.parser import Parser
+from morelia.parser import Parser, verify
 
 pwd = os.path.dirname(os.path.realpath(__file__))
 
@@ -62,9 +62,9 @@ class RegexSpecifiedScenariosTest(SampleTestCaseMixIn, TestCase):
     def test_should_only_run_matching_scenarios(self):
         filename = os.path.join(pwd, "features/scenario_matching.feature")
         self._matching_pattern = r"Scenario Matches [12]"
-        self._ast = Parser().parse_file(filename, scenario=self._matching_pattern)
+        self.feature = Parser().parse_file(filename, scenario=self._matching_pattern)
         scenario_matcher_re = re.compile(self._matching_pattern)
-        for included_scenario in self._ast.steps[0].steps:
+        for included_scenario in self.feature.steps:
             self.assertIsNotNone(scenario_matcher_re.match(included_scenario.predicate))
 
     def test_fail_informatively_on_bad_scenario_regex(self):
@@ -72,7 +72,9 @@ class RegexSpecifiedScenariosTest(SampleTestCaseMixIn, TestCase):
         self._matching_pattern = "\\"
 
         with self.assertRaises(SyntaxError):
-            self._ast = Parser().parse_file(filename, scenario=self._matching_pattern)
+            self.feature = Parser().parse_file(
+                filename, scenario=self._matching_pattern
+            )
 
 
 @tags(["acceptance"])
@@ -102,7 +104,7 @@ class InfoOnAllFailingScenariosTest(TestCase):
     ):
         r'that feature with 4 scenarios has been described in file "([^"]+)"'
         filename = os.path.join(pwd, "features/{}".format(feature_file))
-        self._ast = Parser().parse_file(filename)
+        self.feature = Parser().parse_file(filename)
 
     def step_that_test_case_passing_number_and_number_scenario_and_failing_number_and_number_has_been_written(
         self
@@ -194,7 +196,7 @@ class InfoOnAllFailingScenariosTest(TestCase):
         self._catch_exception = None
         try:
             tc = self._evaluated_test_case()
-            self._ast.evaluate(tc)
+            verify(tc, self.feature)
         except Exception as e:
             self._catch_exception = e  # warning: possible leak, use with caution
 

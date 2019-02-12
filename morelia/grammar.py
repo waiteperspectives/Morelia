@@ -1,4 +1,3 @@
-from abc import ABCMeta
 import copy
 import itertools
 import re
@@ -7,28 +6,15 @@ from morelia.exceptions import MissingStepError
 from morelia.i18n import TRANSLATIONS
 
 
-class INode:
-
-    __metaclass__ = ABCMeta
-
-    def find_step(self, matcher):
-        """Find method matching step.
-
-        :param IStepMatcher matcher: object matching methods by given predicate
-        :returns: (method, args, kwargs) tuple
-        :rtype: tuple
-        :raises MissingStepError: if method maching step not found
-        """
-        pass
-
-    def __repr__(self):
-        return self.keyword + self.get_real_reconstruction()
-
-
-class LabeledNode:
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+class Node:
+    def __init__(self, keyword, predicate, steps=[]):
+        super().__init__()
         self._labels = []
+        self.parent = None
+        self.additional_data = {}
+        self.keyword = keyword
+        self.predicate = predicate if predicate is not None else ""
+        self.steps = steps
 
     def add_labels(self, tags):
         self._labels.extend(tags)
@@ -39,15 +25,14 @@ class LabeledNode:
             labels.extend(self.parent.get_labels())
         return labels
 
+    def find_step(self, matcher):
+        pass
 
-class Morelia(LabeledNode, INode):
-    def __init__(self, keyword, predicate, steps=[]):
-        super().__init__()
-        self.parent = None
-        self.additional_data = {}
-        self.keyword = keyword
-        self.predicate = predicate if predicate is not None else ""
-        self.steps = steps
+    def __iter__(self):
+        for child in self.steps:
+            yield child
+            for descendant in child:
+                yield descendant
 
     def connect_to_parent(self, steps=[], line_number=0):
         self.steps = []
@@ -138,7 +123,7 @@ class Morelia(LabeledNode, INode):
         return None
 
 
-class Feature(Morelia):
+class Feature(Node):
     def prepend_steps(self, scenario):
         background = self.steps[0]
         try:
@@ -156,7 +141,11 @@ class Feature(Morelia):
         visitor.visit_feature(self, self.steps)
 
 
-class Scenario(Morelia):
+class Scenario(Node):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.row_indices = [0]
+
     def my_parent_type(self):
         return Feature
 
@@ -168,9 +157,11 @@ class Scenario(Morelia):
         )
         schedule = visitor.permute_schedule(self)
 
+        old_row_indices = self.row_indices
         for indices in schedule:
             self.row_indices = indices
             visitor.visit_scenario(self, self.steps)
+        self.row_indices = old_row_indices
 
     def permute_schedule(self):
         dims = self.count_Row_dimensions()
@@ -183,7 +174,7 @@ class Scenario(Morelia):
         return "\n" + self.keyword + ": " + self.predicate
 
 
-class Background(Morelia):
+class Background(Node):
     def my_parent_type(self):
         return Feature
 
@@ -203,8 +194,11 @@ class Background(Morelia):
     def accept(self, visitor):
         visitor.visit_background(self)
 
+    def count_Row_dimensions(self):
+        return [0]
 
-class Step(Morelia):
+
+class Step(Node):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.payload = ""
@@ -308,8 +302,7 @@ class But(And):
     pass
 
 
-class Row(Morelia):
-
+class Row(Node):
     def accept(self, visitor):
         visitor.visit_row(self)
 
@@ -337,10 +330,10 @@ class Row(Morelia):
         return 0 if self.__is_header() else 1
 
     def __is_header(self):
-        return (self is self.parent.steps[0])
+        return self is self.parent.steps[0]
 
 
-class Examples(Morelia):
+class Examples(Node):
     def prefix(self):
         return " " * 4
 
@@ -351,9 +344,9 @@ class Examples(Morelia):
         visitor.visit_examples(self, self.steps)
 
 
-class Comment(Morelia):
+class Comment(Node):
     def my_parent_type(self):
-        return Morelia  # aka "any"
+        return Node  # aka "any"
 
     @classmethod
     def get_pattern(cls, language):

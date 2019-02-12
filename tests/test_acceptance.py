@@ -6,7 +6,7 @@ import sys
 from unittest import TestCase
 
 from morelia.decorators import tags
-from morelia.parser import Parser
+from morelia.parser import Parser, verify
 from morelia.grammar import (
     Feature,
     Scenario,
@@ -282,12 +282,12 @@ class MoreliaSuite(TestCase):
 
     def test_Scenes_count_Row_dimensions(self):
         self.assemble_scene_table()
-        dims = self.table_scene.steps[0].steps[0].count_Row_dimensions()
+        dims = self.table_scene.steps[0].count_Row_dimensions()
         self.assertEqual([2, 3], dims)
 
     def test_Scenes_count_more_Row_dimensions(self):
         self.assemble_scene_table("Step whatever\n")
-        dims = self.table_scene.steps[0].steps[0].count_Row_dimensions()
+        dims = self.table_scene.steps[0].count_Row_dimensions()
         self.assertEqual([2, 0, 3], dims)
 
     def test_permutate(self):
@@ -339,13 +339,13 @@ class MoreliaSuite(TestCase):
     def test_permute_schedule(self):
         expect = _permute_indices([2, 0, 3])  # NOTE:  by rights, 0 should be -1
         self.assemble_scene_table("Step you betcha\n")
-        scenario = self.table_scene.steps[0].steps[0]
+        scenario = self.table_scene.steps[0]
         schedule = scenario.permute_schedule()
         self.assertEqual(expect, schedule)
 
     def test_evaluate_permuted_schedule(self):
         self.assemble_scene_table("Step flesh is weak\n")
-        scenario = self.table_scene.steps[0].steps[0]
+        scenario = self.table_scene.steps[0]
         matcher = RegexpStepMatcher(self).add_matcher(MethodNameStepMatcher(self))
         visitor = TestVisitor(self, matcher, NullFormatter())
         global crunks, zones
@@ -364,14 +364,17 @@ class MoreliaSuite(TestCase):
             "Step my milkshake brings all the boys to the yard\n"
         )
         language = self._get_language()
-        Parser(language=language).parse_features(scene).evaluate(self)
+        feature = Parser(language=language).parse_features(scene)
+        verify(self, feature)
         self.assertEqual(["work", "mall", "jail", "work", "mall", "jail"], crunks)
         self.assertEqual(["beach", "beach", "beach", "hotel", "hotel", "hotel"], zones)
 
     def test_harvest(self):
         self.assertEqual(["crock", "of"], Row(r"\|", "crock | of").harvest())
         self.assertEqual(["crock", "of"], Row(r"\|", "crock | of |").harvest())
-        self.assertEqual([r"crane \| wife", "three"], Row(r"\|", r"crane \| wife | three").harvest())
+        self.assertEqual(
+            [r"crane \| wife", "three"], Row(r"\|", r"crane \| wife | three").harvest()
+        )
 
     def step_party_zone(self, zone):
         r"party (\w+)"
@@ -392,7 +395,7 @@ class MoreliaSuite(TestCase):
 
     def test_Rows_find_step_parents(self):
         self.assemble_scene_table()
-        given, then, = self.table_scene.steps[0].steps[0].steps
+        given, then, = self.table_scene.steps[0].steps
         self.assertEqual(Row, given.steps[0].__class__)
         self.assertEqual(Row, then.steps[0].__class__)
         self.assertEqual("zone  |", given.steps[0].predicate)
@@ -417,9 +420,10 @@ class MoreliaSuite(TestCase):
         elements = []
         factions = []
         language = self._get_language()
-        Parser(language=language).parse_features(
+        feature = Parser(language=language).parse_features(
             self.assemble_short_scene_table()
-        ).evaluate(self)
+        )
+        verify(self, feature)
         self.assertEqual(
             [["Pangolin", "Glyptodon"], ["Pangea", "Laurasia"]], [factions, elements]
         )
@@ -427,7 +431,7 @@ class MoreliaSuite(TestCase):
     def test_two_dimensional_table_reconstruction(self):
         language = self._get_language()
         p = Parser(language=language).parse_features(self.assemble_short_scene_table())
-        step = p.steps[0].steps[0].steps[0]
+        step = p.steps[0].steps[0]
         self.assertEqual(
             step.keyword + ": " + step.predicate, step.reconstruction().strip()
         )
@@ -520,8 +524,7 @@ class MoreliaSuite(TestCase):
     def test_record_filename(self):
         language = self._get_language()
         filename = pwd + "/features/morelia%s.feature" % (language or "")
-        thang = Parser(language=language).parse_file(filename)
-        feature = thang.steps[0]
+        feature = Parser(language=language).parse_file(filename)
         assert feature.__class__ == Feature
         assert feature.filename == filename
         step = feature.steps[3].steps[1]
@@ -530,8 +533,8 @@ class MoreliaSuite(TestCase):
     def test_format_faults_like_python_errors(self):
         language = self._get_language()
         filename = pwd + "/features/morelia%s.feature" % (language or "")
-        thang = Parser(language=language).parse_file(filename)
-        step = thang.steps[0].steps[3].steps[1]
+        feature = Parser(language=language).parse_file(filename)
+        step = feature.steps[3].steps[1]
         assert filename == step.get_filename()
         omen = "The Alpine glaciers move"
         diagnostic = step.format_fault(omen)
@@ -550,10 +553,10 @@ class MoreliaSuite(TestCase):
 
     def test_evaluate_file(self):
         language = self._get_language()
-        thang = Parser(language=language).parse_file(
+        feature = Parser(language=language).parse_file(
             "{}/features/morelia{}.feature".format(pwd, language or "")
         )
-        thang.evaluate(self)
+        verify(self, feature)
 
     def setUp(self):
         self.culture = []
@@ -595,7 +598,8 @@ class MoreliaSuite(TestCase):
             prefix = "{}: Sample\n{}: Sample\n".format(
                 self.feature_keyword, self.scenario_keyword
             )
-            p.parse_features(prefix + self.file_contents).evaluate(self)
+            feature = p.parse_features(prefix + self.file_contents)
+            verify(self, feature)
         except (MissingStepError, AssertionError) as e:
             self.diagnostic = str(e)
 
@@ -646,8 +650,8 @@ class MoreliaSuite(TestCase):
             statements = statements.replace("\\n", "\n")
             statements = statements.replace("\\", "")
             language = self._get_language()
-            p = Parser(language=language).parse_features(statements)
-            p.evaluate(self)
+            feature = Parser(language=language).parse_features(statements)
+            verify(self, feature)
             raise Exception("we expect syntax errors here")  # pragma: nocover
         except (SyntaxError, AssertionError) as e:
             e = e.args[0]

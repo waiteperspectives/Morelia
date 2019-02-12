@@ -2,7 +2,6 @@ import inspect
 import sys
 import time
 import traceback
-from collections import OrderedDict
 from gettext import ngettext
 
 from morelia.exceptions import MissingStepError
@@ -80,6 +79,7 @@ class TestVisitor:
         line = node.get_real_reconstruction()
         self._formatter.output(node, line, "", 0)
         self.__visit_children(children)
+
     visit_background = visit_row = visit_examples = visit_comment = visit
 
     def __visit_children(self, children):
@@ -150,30 +150,3 @@ class TestVisitor:
 
     def permute_schedule(self, node):
         return node.permute_schedule()
-
-
-class StepMatcherVisitor:
-    """Visits all steps in order to find missing step methods."""
-
-    def __init__(self, suite, matcher):
-        self._suite = suite
-        self._not_matched = OrderedDict()
-        self._matcher = matcher
-
-    def visit(self, node, children=[]):
-        try:
-            node.find_step(self._matcher)
-        except MissingStepError as e:
-            if e.docstring:
-                self._not_matched[e.docstring] = e.suggest
-            else:
-                self._not_matched[e.method_name] = e.suggest
-            for child in children:
-                child.accept(self)
-    visit_feature = visit_scenario = visit_step = visit
-
-    def report_missing(self):
-        suggest = "".join(self._not_matched.values())
-        if suggest:
-            diagnostic = "Cannot match steps:\n\n{}".format(suggest)
-            self._suite.fail(diagnostic)

@@ -10,62 +10,66 @@
 #                         \/  |_/   |_/|_/\_/|_/|_/ \/
 import re
 import textwrap
+from collections import OrderedDict
 
-
+from morelia.exceptions import MissingStepError
 from morelia.formatters import NullFormatter
 from morelia.grammar import (
-    Feature,
-    Background,
-    Scenario,
-    Given,
-    When,
-    Then,
     And,
+    Background,
     But,
-    Row,
     Comment,
     Examples,
+    Feature,
+    Given,
+    Row,
+    Scenario,
     Step,
+    Then,
+    When,
 )
-from morelia.matchers import RegexpStepMatcher, ParseStepMatcher, MethodNameStepMatcher
-from morelia.visitors import TestVisitor, StepMatcherVisitor
 from morelia.i18n import TRANSLATIONS
+from morelia.matchers import MethodNameStepMatcher, ParseStepMatcher, RegexpStepMatcher
+from morelia.visitors import TestVisitor
 
 
-class AST:
-    def __init__(
-        self,
-        steps,
-        test_visitor_class=TestVisitor,
-        matcher_visitor_class=StepMatcherVisitor,
-    ):
-        self.steps = steps
-        self._test_visitor_class = test_visitor_class
-        self._matcher_visitor_class = matcher_visitor_class
+def verify(suite, feature, formatter=None, matchers=None, show_all_missing=True):
+    if formatter is None:
+        formatter = NullFormatter()
+    if matchers is None:
+        matchers = [RegexpStepMatcher, ParseStepMatcher, MethodNameStepMatcher]
+    matcher = _create_matchers_chain(suite, matchers)
+    if show_all_missing:
+        _find_and_report_missing(feature, matcher, suite)
+    test_visitor = TestVisitor(suite, matcher, formatter)
+    feature.accept(test_visitor)
 
-    def evaluate(self, suite, formatter=None, matchers=None, show_all_missing=True):
-        if matchers is None:
-            matchers = [RegexpStepMatcher, ParseStepMatcher, MethodNameStepMatcher]
-        matcher = self._create_matchers_chain(suite, matchers)
-        feature = self.steps[0]
-        if show_all_missing:
-            matcher_visitor = self._matcher_visitor_class(suite, matcher)
-            feature.accept(matcher_visitor)
-            matcher_visitor.report_missing()
-        if formatter is None:
-            formatter = NullFormatter()
-        test_visitor = self._test_visitor_class(suite, matcher, formatter)
-        feature.accept(test_visitor)
 
-    def _create_matchers_chain(self, suite, matcher_classes):
-        root_matcher = None
-        for matcher_class in matcher_classes:
-            matcher = matcher_class(suite)
-            try:
-                root_matcher.add_matcher(matcher)
-            except AttributeError:
-                root_matcher = matcher
-        return root_matcher
+def _create_matchers_chain(suite, matcher_classes):
+    root_matcher = None
+    for matcher_class in matcher_classes:
+        matcher = matcher_class(suite)
+        try:
+            root_matcher.add_matcher(matcher)
+        except AttributeError:
+            root_matcher = matcher
+    return root_matcher
+
+
+def _find_and_report_missing(feature, matcher, suite):
+    not_matched = OrderedDict()
+    for descendant in feature:
+        try:
+            descendant.find_step(matcher)
+        except MissingStepError as e:
+            if e.docstring:
+                not_matched[e.docstring] = e.suggest
+            else:
+                not_matched[e.method_name] = e.suggest
+    suggest = "".join(not_matched.values())
+    if suggest:
+        diagnostic = "Cannot match steps:\n\n{}".format(suggest)
+        suite.fail(diagnostic)
 
 
 class Parser:
@@ -97,9 +101,9 @@ class Parser:
             self._patterns.append((re.compile(pattern), thang))
 
     def parse_as_str(self, filename, prose, scenario=None):
-        ast = self.parse_features(prose, scenario=scenario)
-        self.steps[0].filename = filename
-        return ast
+        feature = self.parse_features(prose, scenario=scenario)
+        feature.filename = filename
+        return feature
 
     def parse_file(self, filename, scenario=r".*"):
         with open(filename, "rb") as input_file:
@@ -136,14 +140,13 @@ class Parser:
         self.steps = matched_steps
         self.steps[0].steps = matched_feature_steps
 
-        ast = AST(self.steps)
         feature = self.steps[0]
         assert isinstance(feature, Feature), "Exactly one Feature per file"
         feature.enforce(
             any(isinstance(step, Scenario) for step in feature.steps),
             "Feature without Scenario(s)",
         )
-        return ast
+        return self.steps[0]
 
     def _parse_line(self, line):
         if self._language_parser.parse(line):
