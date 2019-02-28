@@ -6,31 +6,8 @@ from unittest import TestCase
 from unittest.mock import sentinel, Mock
 
 from morelia.decorators import tags
-from morelia.grammar import Node, Step
+from morelia.grammar import Step
 from morelia.exceptions import MissingStepError
-
-
-@tags(["unit"])
-class MoreliaReconstructionTestCase(TestCase):
-    """ Test :py:meth:`Node.reconstruction`. """
-
-    def test_should_reconstruct_unicode(self):
-        """ Scenario: unicode input """
-        # Arrange
-        obj = Node("???", "zażółć gęślą jaźń")
-        # Act
-        result = obj.reconstruction()
-        # Assert
-        self.assertEqual(result, "???: zażółć gęślą jaźń\n")
-
-    def test_should_reconstruct_utf8(self):
-        """ Scenario: utf8 input """
-        # Arrange
-        obj = Node("???", "zażółć gęślą jaźń")
-        # Act
-        result = obj.reconstruction()
-        # Assert
-        self.assertEqual(result, "???: zażółć gęślą jaźń\n")
 
 
 @tags(["unit"])

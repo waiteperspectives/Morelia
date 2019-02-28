@@ -5,22 +5,70 @@ import re
 from morelia.exceptions import MissingStepError
 from morelia.i18n import TRANSLATIONS
 
+PLACEHOLDER_RE = re.compile(r"\<(\w+)\>")
+
 
 class Node:
-    def __init__(self, keyword, predicate, steps=[]):
-        super().__init__()
-        self._labels = []
-        self.parent = None
-        self.additional_data = {}
-        self.keyword = keyword
-        self.predicate = predicate if predicate is not None else ""
-        self.steps = steps
+    allowed_parents = (None,)
 
-    def add_labels(self, tags):
-        self._labels.extend(tags)
+    def __init__(self, source="", line_number=0, language="en", labels=None):
+        super().__init__()
+        self.__source = source
+        self.__line_number = line_number
+        self.__language = language
+        self.__labels = labels if labels is not None else []
+        self.parent = None
+        self.steps = []
+        self.__predicate = self.__extract_predicate()
+
+    def __extract_predicate(self):
+        node_re = self.__get_compiled_pattern(self.__language)
+        return node_re.sub("", self.source).strip()
+
+    @classmethod
+    def match(cls, line, language):
+        node_re = cls.__get_compiled_pattern(language)
+        return node_re.match(line)
+
+    @classmethod
+    def __get_compiled_pattern(cls, language, __memo={}):
+        try:
+            return __memo[cls, language]
+        except KeyError:
+            pattern = cls._get_pattern(language)
+            node_re = re.compile(pattern)
+            __memo[cls, language] = node_re
+            return node_re
+
+    @classmethod
+    def _get_pattern(cls, language):
+        class_name = cls.__name__
+        name = class_name.lower()
+        name = TRANSLATIONS[language].get(name, class_name)
+        return r"^\s*({name}):?(\s+|$)".format(name=name)
+
+    @property
+    def source(self):
+        return self.__source
+
+    @property
+    def line_number(self):
+        return self.__line_number
+
+    @property
+    def predicate(self):
+        return self.__predicate
+
+    def append_line(self, line):
+        self.__source += "\n" + line
+        self.__predicate = (self.__predicate + "\n" + line.strip()).strip()
+        self._validate_predicate()
+
+    def _validate_predicate(self):
+        return  # looks good! (-:
 
     def get_labels(self):
-        labels = self._labels
+        labels = self.__labels[:]
         if self.parent:
             labels.extend(self.parent.get_labels())
         return labels
@@ -34,96 +82,70 @@ class Node:
             for descendant in child:
                 yield descendant
 
-    def connect_to_parent(self, steps=[], line_number=0):
-        self.steps = []
-        self.line_number = line_number
-
-        mpt = self.my_parent_type()
+    def connect_to_parent(self, candidate_paremnts):
+        allowed_parents = self.allowed_parents
         try:
-            for step in steps[::-1]:
-                if isinstance(step, mpt):
-                    step.steps.append(self)
+            for step in candidate_paremnts[::-1]:
+                if isinstance(step, allowed_parents):
+                    step.add_child(self)
                     self.parent = step
                     break
         except TypeError:
             self.enforce(False, "Only one Feature per file")
 
-        steps.append(self)
-        return self
-
-    def prefix(self):
-        return ""
-
-    def my_parent_type(self):
-        return None
-
-    @classmethod
-    def get_pattern(cls, language):
-        class_name = cls.__name__
-        name = class_name.lower()
-        name = TRANSLATIONS[language].get(name, class_name)
-        return r"\s*(?P<keyword>" + name + r"):?(?:\s+(?P<predicate>.*))?$"
-
-    def count_dimensions(self):
-        """ Get number of rows. """
-        return sum([step.count_dimension() for step in self.steps])
-
-    def count_dimension(self):
-        return 0
-
-    def validate_predicate(self):
-        return  # looks good! (-:
+    def add_child(self, child):
+        self.steps.append(child)
 
     def enforce(self, condition, diagnostic):
         if not condition:
             text = ""
             offset = 1
             if self.parent:
-                text = self.parent.reconstruction()
+                text = self.parent.source
                 offset = 5
-            text += self.reconstruction()
+            text += self.source
             text = text.replace("\n\n", "\n").replace("\n", "\n\t")
             raise SyntaxError(
                 diagnostic, (self.get_filename(), self.line_number, offset, text)
             )
 
+    def get_filename(self):
+        if self.parent:
+            return self.parent.get_filename()
+        try:
+            return self.filename
+        except AttributeError:
+            return None
+
+    def interpolated_source(self):
+        return self.source + "\n"
+
+    def count_dimensions(self):
+        """ Get number of rows. """
+        return sum(step.count_dimension() for step in self.steps)
+
+    def count_dimension(self):
+        return 0
+
     def format_fault(self, diagnostic):
         parent_reconstruction = ""
         if self.parent:
-            parent_reconstruction = self.parent.reconstruction().strip("\n")
-        reconstruction = self.reconstruction()
+            parent_reconstruction = self.parent.source.strip("\n")
         args = (
             self.get_filename(),
             self.line_number,
             parent_reconstruction,
-            reconstruction,
+            self.source,
             diagnostic,
         )
         return '\n  File "%s", line %s, in %s\n %s\n%s' % args
 
-    def reconstruction(self):
-        recon = "{}{}: {}".format(self.prefix(), self.keyword, self.predicate)
-        recon += "\n" if recon[-1] != "\n" else ""
-        return recon
-
-    def get_real_reconstruction(self):
-        return self.reconstruction() + "\n"
-
-    def get_filename(self):
-        node = self
-
-        while node:
-            if not node.parent:
-                try:
-                    return node.filename
-                except AttributeError:
-                    pass
-            node = node.parent
-
-        return None
-
 
 class Feature(Node):
+
+    def accept(self, visitor):
+        visitor.visit_feature(self, self.steps)
+
     def prepend_steps(self, scenario):
         background = self.steps[0]
         try:
@@ -131,23 +153,13 @@ class Feature(Node):
         except AttributeError:
             pass
 
-    def reconstruction(self):
-        predicate = self.predicate.replace("\n", "\n    ")
-        recon = "{}{}: {}".format(self.prefix(), self.keyword, predicate)
-        recon += "\n" if recon[-1] != "\n" else ""
-        return recon
-
-    def accept(self, visitor):
-        visitor.visit_feature(self, self.steps)
-
 
 class Scenario(Node):
+    allowed_parents = (Feature,)
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.row_indices = [0]
-
-    def my_parent_type(self):
-        return Feature
 
     def accept(self, visitor):
         self.parent.prepend_steps(self)
@@ -155,7 +167,7 @@ class Scenario(Node):
             0 < len(self.steps),
             "Scenario without step(s) - Step, Given, When, Then, And, or #",
         )
-        schedule = visitor.permute_schedule(self)
+        schedule = self.permute_schedule()
 
         old_row_indices = self.row_indices
         for indices in schedule:
@@ -170,13 +182,12 @@ class Scenario(Node):
     def count_Row_dimensions(self):
         return [step.count_dimensions() for step in self.steps]
 
-    def reconstruction(self):
-        return "\n" + self.keyword + ": " + self.predicate
-
 
 class Background(Node):
-    def my_parent_type(self):
-        return Feature
+    allowed_parents = (Feature,)
+
+    def accept(self, visitor):
+        visitor.visit_background(self)
 
     def prepend_steps(self, scenario):
         try:
@@ -191,23 +202,16 @@ class Background(Node):
             scenario.background_steps = background_steps
             return background_steps
 
-    def accept(self, visitor):
-        visitor.visit_background(self)
-
     def count_Row_dimensions(self):
         return [0]
 
 
 class Step(Node):
+    allowed_parents = (Scenario, Background)
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.payload = ""
-
-    def prefix(self):
-        return "  "
-
-    def my_parent_type(self):
-        return (Scenario, Background)
 
     def accept(self, visitor):
         visitor.visit_step(self, self.steps)
@@ -221,7 +225,7 @@ class Step(Node):
         :raises MissingStepError: if method maching step not found
         """
         predicate = self.predicate
-        augmented_predicate = self._augment_predicate()
+        augmented_predicate = self.__get_interpolated_predicate()
         method, args, kwargs = matcher.find(predicate, augmented_predicate)
         if method:
             return method, args, kwargs
@@ -229,21 +233,18 @@ class Step(Node):
         suggest, method_name, docstring = matcher.suggest(predicate)
         raise MissingStepError(predicate, suggest, method_name, docstring)
 
-    def get_real_reconstruction(self):
-        predicate = self._augment_predicate()
-        recon = "    {} {}".format(self.keyword, predicate)
-        recon += "\n" if recon[-1] != "\n" else ""
-        return recon
+    def interpolated_source(self):
+        augmented_predicate = self.__get_interpolated_predicate()
+        return self.source.replace(self.predicate, augmented_predicate)
 
-    def _augment_predicate(self):
+    def __get_interpolated_predicate(self):
         if self.parent is None:
             return self.predicate
         dims = self.parent.count_Row_dimensions()
         if set(dims) == {0}:
             return self.predicate
-        rep = re.compile(r"\<(\w+)\>")
-        replitrons = rep.findall(self.predicate)
-        if replitrons == []:
+        replitrons = PLACEHOLDER_RE.findall(self.predicate)
+        if not replitrons:
             return self.predicate
         self.copy = self.predicate[:]
         row_indices = self.parent.row_indices
@@ -278,53 +279,46 @@ class Step(Node):
 
 
 class Given(Step):
-
     pass
 
 
 class When(Step):
-
     pass
 
 
 class Then(Step):
-
     pass
 
 
 class And(Step):
-
     pass
 
 
 class But(And):
-
     pass
 
 
+class Examples(Node):
+    allowed_parents = (Scenario,)
+
+    def accept(self, visitor):
+        visitor.visit_examples(self, self.steps)
+
+
 class Row(Node):
+    allowed_parents = (Step, Examples)
+
     def accept(self, visitor):
         visitor.visit_row(self)
+
+    @classmethod
+    def _get_pattern(cls, language):
+        return r"^\s*(\|):?\s+"
 
     def harvest(self):
         row = re.split(r" \|", re.sub(r"\|$", "", self.predicate))
         row = [s.strip() for s in row]
         return row
-
-    @classmethod
-    def get_pattern(cls, language):
-        return r"\s*(?P<keyword>\|):?\s+(?P<predicate>.*)"
-
-    def my_parent_type(self):
-        return (Step, Examples)
-
-    def prefix(self):
-        return " " * 8
-
-    def reconstruction(self):
-        recon = self.prefix() + "| " + self.predicate
-        recon += "\n" if recon[-1] != "\n" else ""
-        return recon
 
     def count_dimension(self):
         return 0 if self.__is_header() else 1
@@ -333,35 +327,18 @@ class Row(Node):
         return self is self.parent.steps[0]
 
 
-class Examples(Node):
-    def prefix(self):
-        return " " * 4
-
-    def my_parent_type(self):
-        return Scenario
-
-    def accept(self, visitor):
-        visitor.visit_examples(self, self.steps)
-
-
 class Comment(Node):
-    def my_parent_type(self):
-        return Node  # aka "any"
-
-    @classmethod
-    def get_pattern(cls, language):
-        return r"\s*(?P<keyword>\#)(?P<predicate>.*)"
-
-    def validate_predicate(self):
-        self.enforce(self.predicate.count("\n") == 0, "linefeed in comment")
-
-    def reconstruction(self):
-        recon = "    # " + self.predicate
-        recon += "\n" if recon[-1] != "\n" else ""
-        return recon
+    allowed_parents = (Node,)
 
     def accept(self, visitor):
         visitor.visit_comment(self)
+
+    @classmethod
+    def _get_pattern(cls, language):
+        return r"\s*(\#)"
+
+    def _validate_predicate(self):
+        self.enforce("\n" not in self.predicate, "linefeed in comment")
 
 
 def _special_range(n):

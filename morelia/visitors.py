@@ -40,7 +40,7 @@ class TestVisitor:
         self._scenarios_failed = 0
         self._scenarios_passed = 0
         self._scenarios_num = 0
-        line = node.get_real_reconstruction()
+        line = node.interpolated_source()
         self._formatter.output(node, line, "", 0)
 
     def _feature_after_visit(self, node):
@@ -76,7 +76,7 @@ class TestVisitor:
         self.__visit_children(children)
 
     def visit(self, node, children=[]):
-        line = node.get_real_reconstruction()
+        line = node.interpolated_source()
         self._formatter.output(node, line, "", 0)
         self.__visit_children(children)
 
@@ -91,7 +91,7 @@ class TestVisitor:
         if self._scenarios_num != 0:
             self._setUp()
         self._scenarios_num += 1
-        line = node.get_real_reconstruction()
+        line = node.interpolated_source()
         self._formatter.output(node, line, "", 0)
 
     def _scenario_after_visit(self, node):
@@ -107,7 +107,7 @@ class TestVisitor:
             return
         self._suite.step = node
         self._steps_num += 1
-        reconstruction = node.get_real_reconstruction()
+        reconstruction = node.interpolated_source()
         start_time = time.time()
         status = "pass"
         try:
@@ -117,7 +117,7 @@ class TestVisitor:
             etype, evalue, etraceback = sys.exc_info()
             tb = traceback.extract_tb(etraceback)[:-2]
             self._scenario_exception = (
-                node.parent.get_real_reconstruction() + reconstruction,
+                node.parent.interpolated_source() + reconstruction,
                 "".join(traceback.format_list(tb)),
                 "".join(traceback.format_exception_only(etype, evalue)),
             )
@@ -147,6 +147,3 @@ class TestVisitor:
         if "_text" in arglist:
             kwargs["_text"] = node.payload
         method(*args, **kwargs)
-
-    def permute_schedule(self, node):
-        return node.permute_schedule()

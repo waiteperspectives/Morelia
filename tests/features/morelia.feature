@@ -41,7 +41,6 @@ Scenario: when did Bow Wow Wow become classic rock?
 
     When Morelia evaluates this
     Then "culture" contains ['radio', 'g-string', 'battery', 'driven']
-      And the step keyword is Given
 
 Scenario: Convert source predicates into their matching regular expressions
    Given a source file with a <predicate>
@@ -75,7 +74,7 @@ Scenario: Raise useful errors with incomplete files
 
     | Feature    resist   \
         Scenario syntax   \
-          Step   errors   | Scenario: syntax
+          Step   errors   | Scenario syntax
 
     |  Feature in da      \
          Step zone        | Feature without Scenario(s)

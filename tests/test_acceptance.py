@@ -58,11 +58,10 @@ class MoreliaSuite(TestCase):
 
     def test_feature(self):
         language = self._get_language()
-        input = "%s: prevent wild animals from eating us" % self.feature_keyword
-        steps = Parser(language=language).parse_feature(input)
+        source = "%s: prevent wild animals from eating us" % self.feature_keyword
+        steps = Parser(language=language).parse_feature(source)
         step = steps[0]
         assert step.__class__ == Feature
-        self.assertEqual(step.keyword, self.feature_keyword)
         self.assertEqual(step.predicate, "prevent wild animals from eating us")
 
     def test_scenario(self):
@@ -71,7 +70,6 @@ class MoreliaSuite(TestCase):
         steps = Parser(language=language).parse_feature(input)
         step = steps[0]
         assert step.__class__ == Scenario
-        self.assertEqual(step.keyword, self.scenario_keyword)
         self.assertEqual(step.predicate, "range free Vegans")
 
     def test___scenario(self):
@@ -80,7 +78,6 @@ class MoreliaSuite(TestCase):
         steps = Parser(language=language).parse_feature(input)
         step = steps[0]
         assert step.__class__ == Scenario
-        self.assertEqual(step.keyword, self.scenario_keyword)
         self.assertEqual(step.predicate, "with spacies")
 
     def test_given_a_string_with_given_in_it(self):
@@ -92,7 +89,6 @@ class MoreliaSuite(TestCase):
         steps = Parser(language=language).parse_feature(input)  # ^ note the spacies
         step = steps[0]
         assert step.__class__ == Given
-        self.assertEqual(step.keyword, self.given_keyword)
         self.assertEqual(
             step.predicate, "a string with Given in it"
         )  # <-- note spacies are gone
@@ -105,7 +101,6 @@ class MoreliaSuite(TestCase):
         steps = Parser(language=language).parse_feature(input)
         step = steps[0]
         assert step.__class__ == Given
-        self.assertEqual(step.keyword, self.given_keyword)
         self.assertEqual(step.predicate, "a string with spacies and\nanother string")
 
     def test_deal_with_pesky_carriage_returns(
@@ -118,7 +113,6 @@ class MoreliaSuite(TestCase):
         steps = Parser(language=language).parse_feature(input)
         step = steps[0]
         assert step.__class__ == Given
-        self.assertEqual(step.keyword, self.given_keyword)
         self.assertEqual(step.predicate, "a string with spacies and\nanother string")
 
     def test_given_a_string_with_a_line_breaker_followed_by_a_keyword(self):
@@ -131,7 +125,7 @@ class MoreliaSuite(TestCase):
         assert 1 == len(steps)
         step = steps[0]
         assert step.__class__ == Given
-        self.assertEqual(step.keyword, self.given_keyword)
+        self.assertEqual(step.source, "Given a string \\\n And another string")
         self.assertEqual(step.predicate, "a string \\\n And another string")
 
     def test_given_a_string_with_a_line_breaker_followed_by_a_keyword_with_stray_spacies(
@@ -146,7 +140,6 @@ class MoreliaSuite(TestCase):
         assert 1 == len(steps)
         step = steps[0]
         assert step.__class__ == Given
-        self.assertEqual(step.keyword, self.given_keyword)
         self.assertEqual(
             step.predicate, "a string \\\n And another string, without stray spacies"
         )
@@ -161,11 +154,9 @@ class MoreliaSuite(TestCase):
         steps = Parser(language=language).parse_feature(input)
         step = steps[0]
         assert step.__class__ == Feature
-        self.assertEqual(step.keyword, self.feature_keyword)
         self.assertEqual(step.predicate, "Civi-lie-zation")
         step = steps[1]
         assert step.__class__ == Scenario
-        self.assertEqual(step.keyword, self.scenario_keyword)
         self.assertEqual(step.predicate, "starz upon tharz bucks")
 
     def test_file_without_feature_defined(self):
@@ -196,11 +187,10 @@ class MoreliaSuite(TestCase):
         language = self._get_language()
         p = Parser(language=language)
 
-        input = (
-            """%s: The Sacred Giant Mosquito of the Andes
+        input = """{}: The Sacred Giant Mosquito of the Andes
                    #  at http://www.onagocag.com/nazbird.jpg
-                        so pay no attention to the skeptics!"""
-            % self.feature_keyword
+                        so pay no attention to the skeptics!""".format(
+            self.feature_keyword
         )
         try:
             p.parse_feature(input)
@@ -213,7 +203,6 @@ class MoreliaSuite(TestCase):
         assert steps[0].__class__ == Feature
         step = steps[1]
         assert step.__class__ == Comment
-        self.assertEqual(step.keyword, "#")
 
     def pet_scenario(self):
         return """%(scenario)s: See all vendors
@@ -233,17 +222,12 @@ class MoreliaSuite(TestCase):
         language = self._get_language()
         steps = Parser(language=language).parse_feature(scenario)
         step_0, step_1, step_2, step_3, step_4 = steps
-        self.assertEqual(step_0.keyword, self.scenario_keyword)
         self.assertEqual(step_0.predicate, "See all vendors")
-        self.assertEqual(step_1.keyword, self.given_keyword)
         self.assertEqual(
             step_1.predicate, "I am logged in as a user in the administrator role"
         )
-        self.assertEqual(step_2.keyword, self.and_keyword)
         self.assertEqual(step_2.predicate, "There are 3 vendors")
-        self.assertEqual(step_3.keyword, self.when_keyword)
         self.assertEqual(step_3.predicate, "I go to the manage vendors page")
-        self.assertEqual(step_4.keyword, self.then_keyword)
         self.assertEqual(step_4.predicate, "I should see the first 3 vendor names")
 
     def test_strip_predicates(self):
@@ -251,7 +235,6 @@ class MoreliaSuite(TestCase):
         step = Parser(language=language).parse_feature(
             "  %s   gangsta girl   \t     " % self.given_keyword
         )[0]
-        self.assertEqual(step.keyword, self.given_keyword)
         self.assertEqual(step.predicate, "gangsta girl")
 
     def test_scenarios_link_to_their_steps(self):
@@ -270,7 +253,7 @@ class MoreliaSuite(TestCase):
 
     def test_Row_parse(self):
         sauce = "buddha | brot |"
-        row = Row("#", sauce)
+        row = Row("| " + sauce)
         assert row.predicate == sauce
 
     def test_parse_feature_Row(self):
@@ -370,10 +353,10 @@ class MoreliaSuite(TestCase):
         self.assertEqual(["beach", "beach", "beach", "hotel", "hotel", "hotel"], zones)
 
     def test_harvest(self):
-        self.assertEqual(["crock", "of"], Row(r"\|", "crock | of").harvest())
-        self.assertEqual(["crock", "of"], Row(r"\|", "crock | of |").harvest())
+        self.assertEqual(["crock", "of"], Row(r"| crock | of").harvest())
+        self.assertEqual(["crock", "of"], Row(r"| crock | of |").harvest())
         self.assertEqual(
-            [r"crane \| wife", "three"], Row(r"\|", r"crane \| wife | three").harvest()
+            [r"crane \| wife", "three"], Row(r"| crane \| wife | three").harvest()
         )
 
     def step_party_zone(self, zone):
@@ -428,14 +411,6 @@ class MoreliaSuite(TestCase):
             [["Pangolin", "Glyptodon"], ["Pangea", "Laurasia"]], [factions, elements]
         )
 
-    def test_two_dimensional_table_reconstruction(self):
-        language = self._get_language()
-        p = Parser(language=language).parse_features(self.assemble_short_scene_table())
-        step = p.steps[0].steps[0]
-        self.assertEqual(
-            step.keyword + ": " + step.predicate, step.reconstruction().strip()
-        )
-
     def step_party_element_from_faction(self, element, faction):
         r"party (\w+) from (\w+)"
 
@@ -452,55 +427,55 @@ class MoreliaSuite(TestCase):
         x = 1 / 0  # noqa guilty pleasure for programmers!
 
     def test_handle_exceptions(self):
-        s = Step("Given", "exceptional")
-        s.line_number = 42
+        source = "Given exceptional"
+        s = Given(source=source, line_number=42)
         matcher = RegexpStepMatcher(self).add_matcher(MethodNameStepMatcher(self))
         visitor = TestVisitor(self, matcher, NullFormatter())
         try:
             visitor.visit_step(s)
             assert False  # should raise!  # pragma: nocover
         except ZeroDivisionError as e:
-            assert "Given: exceptional" in str(e)
+            assert "Given exceptional" in str(e)
 
     def test_find_step_by_name(self):
-        step = Given(self.given_keyword, "my milkshake")
+        step = Given("Given my milkshake")
         matcher = self._get_default_machers()
         method, args, kwargs = step.find_step(matcher)
         expect = self.step_my_milkshake
         self.assertEqual(expect, method)
 
     def test_find_step_by_doc_string(self):
-        step = And(self.and_keyword, "my milkshake brings all the boys to the yard")
+        step = And("And my milkshake brings all the boys to the yard")
         matcher = self._get_default_machers()
         method, args, kwargs = step.find_step(matcher)
         expect = self.step_my_milkshake
         self.assertEqual(expect, method)
 
     def test_find_step_with_match(self):
-        step = When(self.when_keyword, "my milkshake brings all the girls to the yard")
+        step = When("When my milkshake brings all the girls to the yard")
         matcher = self._get_default_machers()
         method, args, kwargs = step.find_step(matcher)
         self.assertEqual(("girls", "the"), args)
 
     def test_step_not_found(self):
-        step = Then(self.then_keyword, "not there")
+        step = Then("Then not there")
         matcher = self._get_default_machers()
         self.assertRaises(MissingStepError, step.find_step, matcher)
 
     def step_fail_without_enough_function_name(self):
-        step = And(self.and_keyword, "my milk")
+        step = And("And my milk")
         matcher = self._get_default_machers()
         self.assertRaises(MissingStepError, step.find_step, matcher)
 
     def step_fail_step_without_enough_doc_string(self):
         step = Given(
-            self.given_keyword, "brings all the boys to the yard it's better than yours"
+            "Given brings all the boys to the yard it's better than yours"
         )
         matcher = self._get_default_machers()
         self.assertRaises(MissingStepError, step.find_step, matcher)
 
     def step_evaluate_step_by_doc_string(self):
-        step = Given(self.given_keyword, "my milkshake brings all the girls to a yard")
+        step = Given("Given my milkshake brings all the girls to a yard")
         self.youth = "boys"
         matcher = self._get_default_machers()
         visitor = TestVisitor(self, matcher, NullFormatter())
@@ -538,8 +513,8 @@ class MoreliaSuite(TestCase):
         assert filename == step.get_filename()
         omen = "The Alpine glaciers move"
         diagnostic = step.format_fault(omen)
-        parent_reconstruction = step.parent.reconstruction().strip("\n")
-        reconstruction = step.reconstruction()
+        parent_reconstruction = step.parent.source.strip("\n")
+        reconstruction = step.source
 
         expect = '\n  File "%s", line %s, in %s\n %s\n%s' % (
             step.get_filename(),
@@ -571,7 +546,6 @@ class MoreliaSuite(TestCase):
         r"adventure of love - love and (.+)"
 
         self.culture.append(culture)
-        self.keyword = self.step.keyword
 
     def step_Morelia_evaluates_this(self):
         pass
@@ -612,11 +586,6 @@ class MoreliaSuite(TestCase):
         r'the second line contains "([^"]+)"'
 
         self.assert_regex_contains(re.escape(docstring), self.diagnostic)
-
-    def step_the_step_keyword_is_(self, keyword):
-        r"the step keyword is (.+)"
-
-        self.assertEqual(keyword, self.keyword)
 
     def step_a_source_file_with_a_Given_(self, predicate):
         r"a source file with a (.+)"
@@ -670,29 +639,3 @@ class MoreliaSuite(TestCase):
         method_name_matcher = MethodNameStepMatcher(self)
         docstring_matcher.add_matcher(method_name_matcher)
         return docstring_matcher
-
-
-@tags(["acceptance"])
-class PLMoreliaSuite(MoreliaSuite):
-    def setUp(self):
-        self.culture = []
-        self.feature_keyword = "Właściwość"
-        self.scenario_keyword = "Scenariusz"
-        self.given_keyword = "Zakładając, że"
-        self.then_keyword = "Wtedy"
-        self.when_keyword = "Gdy"
-        self.and_keyword = "I"
-
-    def _get_language(self):
-        return "pl"
-
-    def test_language_directive(self):
-        input = (
-            "# language: pl\n%s: prevent wild animals from eating us"
-            % self.feature_keyword
-        )
-        steps = Parser().parse_feature(input)
-        step = steps[0]
-        assert step.__class__ == Feature
-        self.assertEqual(step.keyword, self.feature_keyword)
-        self.assertEqual(step.predicate, "prevent wild animals from eating us")

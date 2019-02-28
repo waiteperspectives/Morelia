@@ -74,7 +74,7 @@ def _find_and_report_missing(feature, matcher, suite):
 
 class Parser:
     def __init__(self, language=None):
-        self.thangs = [
+        self.__nodes = [
             Feature,
             Background,
             Scenario,
@@ -91,14 +91,7 @@ class Parser:
         self.steps = []
         if language is None:
             language = "en"
-        self._language = language
-        self._prepare_patterns(language)
-
-    def _prepare_patterns(self, language):
-        self._patterns = []
-        for thang in self.thangs:
-            pattern = thang.get_pattern(language)
-            self._patterns.append((re.compile(pattern), thang))
+        self.__language = language
 
     def parse_as_str(self, filename, prose, scenario=None):
         feature = self.parse_features(prose, scenario=scenario)
@@ -148,80 +141,70 @@ class Parser:
         )
         return self.steps[0]
 
-    def _parse_line(self, line):
-        if self._language_parser.parse(line):
-            self._prepare_patterns(self._language_parser.language)
+    def parse_feature(self, lines):
+        self.__line_producer = LineSource(lines)
+        self.__docstring_parser = DocStringParser(self.__line_producer)
+        self.__language_parser = LanguageParser(default_language=self.__language)
+        self.__labels_parser = LabelParser()
+        try:
+            while True:
+                line = self.__line_producer.get_line()
+                if line:
+                    self.__parse_line(line)
+        except StopIteration:
+            pass
+        return self.steps
+
+    def __parse_line(self, line):
+        if self.__language_parser.parse(line):
+            self.__language = self.__language_parser.language
             return
 
-        if self._labels_parser.parse(line):
+        if self.__labels_parser.parse(line):
             return
 
-        if self._docstring_parser.parse(line):
+        if self.__docstring_parser.parse(line):
             previous = self.steps[-1]
-            previous.payload = self._docstring_parser.payload
+            previous.payload = self.__docstring_parser.payload
             return
 
-        if self._anneal_last_broken_line(line):
-            return
-
-        if self._parse_thang(line):
+        if self.__parse_node(line):
             return
 
         if 0 < len(self.steps):
-            self._append_to_previous_node(line)
+            self.__append_to_previous_node(line)
         else:
-            s = Step("???", line)
-            s.line_number = self._line_producer.line_number
-            feature_name = TRANSLATIONS[self._language_parser.language].get(
+            line_number = self.__line_producer.line_number
+            s = Step(line, line_number=line_number)
+            feature_name = TRANSLATIONS[self.__language_parser.language].get(
                 "feature", "Feature"
             )
             feature_name = feature_name.replace("|", " or ")
             s.enforce(False, "feature files must start with a %s" % feature_name)
 
-    def parse_feature(self, lines):
-        self._line_producer = LineSource(lines)
-        self._docstring_parser = DocStringParser(self._line_producer)
-        self._language_parser = LanguageParser(default_language=self._language)
-        self._labels_parser = LabelParser()
-        try:
-            while True:
-                line = self._line_producer.get_line()
-                if line:
-                    self._parse_line(line)
-        except StopIteration:
-            pass
-        return self.steps
-
-    def _anneal_last_broken_line(self, line):
-        if self.steps == []:
-            return False
-        last_line = self.last_node.predicate
-
-        if re.search(r"\\\s*$", last_line):
-            last = self.last_node
-            last.predicate += "\n" + line
-            return True
-
-        return False
-
-    def _parse_thang(self, line):
+    def __parse_node(self, line):
+        folded_lines = self.__read_folded_lines(line)
         line = line.rstrip()
-
-        for regexp, klass in self._patterns:
-            m = regexp.match(line)
-
-            if m and len(m.groups()) > 0:
-                node = klass(**m.groupdict())
-                node.add_labels(self._labels_parser.pop_labels())
-                node.connect_to_parent(self.steps, self._line_producer.line_number)
-                self.last_node = node
+        source = line + folded_lines
+        line_number = self.__line_producer.line_number
+        for klass in self.__nodes:
+            if klass.match(line, self.__language):
+                labels = self.__labels_parser.pop_labels()
+                node = klass(source=source, line_number=line_number, labels=labels)
+                node.connect_to_parent(self.steps)
+                self.steps.append(node)
                 return node
 
-    def _append_to_previous_node(self, line):
+    def __read_folded_lines(self, line):
+        folded_lines = [""]
+        while re.search(r"\\\s*$", line):
+            line = self.__line_producer.get_line()
+            folded_lines.append(line)
+        return "\n".join(folded_lines)
+
+    def __append_to_previous_node(self, line):
         previous = self.steps[-1]
-        previous.predicate += "\n" + line.strip()
-        previous.predicate = previous.predicate.strip()
-        previous.validate_predicate()
+        previous.append_line(line)
 
 
 class LabelParser:
@@ -259,8 +242,8 @@ class LanguageParser:
     def __init__(self, lang_pattern=r"^# language: (\w+)", default_language=None):
         if default_language is None:
             default_language = "en"
-        self._language = default_language
-        self._lang_re = re.compile(lang_pattern)
+        self.__language = default_language
+        self.__lang_re = re.compile(lang_pattern)
 
     def parse(self, line):
         """Parse language directive.
@@ -269,22 +252,22 @@ class LanguageParser:
         :returns: True if line contains language directive
         :side effects: sets self.language to parsed language
         """
-        match = self._lang_re.match(line)
+        match = self.__lang_re.match(line)
         if match:
-            self._language = match.groups()[0]
+            self.__language = match.groups()[0]
             return True
         return False
 
     @property
     def language(self):
-        return self._language
+        return self.__language
 
 
 class DocStringParser:
     def __init__(self, source, pattern=r'\s*"""\s*'):
-        self._source = source
-        self._docstring_re = re.compile(pattern)
-        self._payload = []
+        self.__source = source
+        self.__docstring_re = re.compile(pattern)
+        self.__payload = []
 
     def parse(self, line):
         """Parse docstring payload.
@@ -293,35 +276,35 @@ class DocStringParser:
         :returns: True if docstring parsed
         :side effects: sets self.payload to parsed docstring
         """
-        match = self._docstring_re.match(line)
+        match = self.__docstring_re.match(line)
         if match:
             start_line = line
-            self._payload = []
-            line = self._source.get_line()
+            self.__payload = []
+            line = self.__source.get_line()
             while line != start_line:
-                self._payload.append(line)
-                line = self._source.get_line()
+                self.__payload.append(line)
+                line = self.__source.get_line()
             return True
         return False
 
     @property
     def payload(self):
-        return textwrap.dedent("\n".join(self._payload))
+        return textwrap.dedent("\n".join(self.__payload))
 
 
 class LineSource:
     def __init__(self, text):
-        self._lines = iter([line for line in text.split("\n") if line])
-        self._line_number = 0
+        self.__lines = iter(line for line in text.split("\n") if line)
+        self.__line_number = 0
 
     def get_line(self):
         """Return next line.
 
         :returns: next line of text
         """
-        self._line_number += 1
-        return next(self._lines)
+        self.__line_number += 1
+        return next(self.__lines)
 
     @property
     def line_number(self):
-        return self._line_number
+        return self.__line_number
