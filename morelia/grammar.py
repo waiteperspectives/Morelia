@@ -11,8 +11,9 @@ PLACEHOLDER_RE = re.compile(r"\<(\w+)\>")
 class Node:
     allowed_parents = (None,)
 
-    def __init__(self, source="", line_number=0, language="en", labels=None):
-        super().__init__()
+    def __init__(
+        self, source="", line_number=0, language="en", labels=None, predecessors=[]
+    ):
         self.__source = source
         self.__line_number = line_number
         self.__language = language
@@ -20,6 +21,19 @@ class Node:
         self.parent = None
         self.steps = []
         self.__predicate = self.__extract_predicate()
+        self.__connect_to_parent(predecessors)
+        self._validate_predicate()
+
+    def __connect_to_parent(self, predecessors):
+        allowed_parents = self.allowed_parents
+        try:
+            for step in predecessors[::-1]:
+                if isinstance(step, allowed_parents):
+                    step.add_child(self)
+                    self.parent = step
+                    break
+        except TypeError:
+            self.enforce(False, "Only one Feature per file")
 
     def __extract_predicate(self):
         node_re = self.__get_compiled_pattern(self.__language)
@@ -82,17 +96,6 @@ class Node:
             for descendant in child:
                 yield descendant
 
-    def connect_to_parent(self, candidate_paremnts):
-        allowed_parents = self.allowed_parents
-        try:
-            for step in candidate_paremnts[::-1]:
-                if isinstance(step, allowed_parents):
-                    step.add_child(self)
-                    self.parent = step
-                    break
-        except TypeError:
-            self.enforce(False, "Only one Feature per file")
-
     def add_child(self, child):
         self.steps.append(child)
 
@@ -120,13 +123,6 @@ class Node:
     def interpolated_source(self):
         return self.source + "\n"
 
-    def count_dimensions(self):
-        """ Get number of rows. """
-        return sum(step.count_dimension() for step in self.steps)
-
-    def count_dimension(self):
-        return 0
-
     def format_fault(self, diagnostic):
         parent_reconstruction = ""
         if self.parent:
@@ -142,7 +138,6 @@ class Node:
 
 
 class Feature(Node):
-
     def accept(self, visitor):
         visitor.visit_feature(self, self.steps)
 
@@ -180,7 +175,7 @@ class Scenario(Node):
         return _permute_indices(dims)
 
     def count_Row_dimensions(self):
-        return [step.count_dimensions() for step in self.steps]
+        return [step.rows_number() for step in self.steps]
 
 
 class Background(Node):
@@ -240,42 +235,52 @@ class Step(Node):
     def __get_interpolated_predicate(self):
         if self.parent is None:
             return self.predicate
+        if self.__parent_has_no_rows():
+            return self.predicate
+        placeholders = PLACEHOLDER_RE.findall(self.predicate)
+        if not placeholders:
+            return self.predicate
+        return self.__replace_placeholders_in_predicate(placeholders)
+
+    def __parent_has_no_rows(self):
         dims = self.parent.count_Row_dimensions()
-        if set(dims) == {0}:
-            return self.predicate
-        replitrons = PLACEHOLDER_RE.findall(self.predicate)
-        if not replitrons:
-            return self.predicate
-        self.copy = self.predicate[:]
+        return not any(dims)
+
+    def __replace_placeholders_in_predicate(self, placeholders):
+        copy = self.predicate[:]
         row_indices = self.parent.row_indices
+        siblings = self.parent.steps
+        for step_idx, row_idx in enumerate(row_indices):
+            step = siblings[step_idx]
+            table = step.get_rows()
+            if len(table) > 1:
+                header = table[0]
+                body = table[1:]
+                for column_idx, column_title in enumerate(header.values):
+                    value = body[row_idx][column_idx]
+                    copy = self.__replace_placeholders(
+                        column_title, value, placeholders, copy
+                    )
+        return copy
 
-        for replitron in replitrons:
-            for x in range(0, len(row_indices)):
-                table = self.parent.steps[x].steps
+    def __replace_placeholders(self, column_title, table_value, placeholders, copy):
+        for placeholder in placeholders:
+            if column_title == placeholder:
+                return self.__replace_placeholder(copy, placeholder, table_value)
+        return copy
 
-                try:
-                    row = next(filter(lambda step: isinstance(step, Row), table))
-                except StopIteration:
-                    pass
-                else:
-                    for q, title in enumerate(row.harvest()):
-                        self.replace_replitron(
-                            x, q, row_indices, table, title, replitron
-                        )
+    def __replace_placeholder(self, copy, placeholder, table_value):
+        table_value = table_value.replace("\n", "\\n")
+        return copy.replace(
+            "<{placeholder}>".format(placeholder=placeholder), table_value
+        )
 
-        return self.copy
+    def get_rows(self):
+        return [step for step in self.steps if isinstance(step, Row)]
 
-    def replace_replitron(self, x, q, row_indices, table, title, replitron):
-        if title != replitron:
-            return
-        at = row_indices[x] + 1
-
-        assert at < len(table), "this should never happen"
-
-        stick = table[at].harvest()
-        found = stick[q]
-        found = found.replace("\n", "\\n")
-        self.copy = self.copy.replace("<%s>" % replitron, found)
+    def rows_number(self):
+        rows_number = len(self.get_rows()) - 1  # do not count header
+        return max(0, rows_number)
 
 
 class Given(Step):
@@ -301,6 +306,7 @@ class But(And):
 class Examples(Node):
     allowed_parents = (Scenario,)
 
+    # TODO: verify that Examples handle rows properly
     def accept(self, visitor):
         visitor.visit_examples(self, self.steps)
 
@@ -308,23 +314,28 @@ class Examples(Node):
 class Row(Node):
     allowed_parents = (Step, Examples)
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._validate_predicate()
+
+    def _validate_predicate(self):
+        # TODO: validate that grandparent is not Background
+        row = re.split(r" \|", re.sub(r"\|$", "", self.predicate))
+        self.__values = [s.strip() for s in row]
+
+    def __getitem__(self, column_idx):
+        return self.__values[column_idx]
+
+    @property
+    def values(self):
+        return self.__values
+
     def accept(self, visitor):
         visitor.visit_row(self)
 
     @classmethod
     def _get_pattern(cls, language):
         return r"^\s*(\|):?\s+"
-
-    def harvest(self):
-        row = re.split(r" \|", re.sub(r"\|$", "", self.predicate))
-        row = [s.strip() for s in row]
-        return row
-
-    def count_dimension(self):
-        return 0 if self.__is_header() else 1
-
-    def __is_header(self):
-        return self is self.parent.steps[0]
 
 
 class Comment(Node):

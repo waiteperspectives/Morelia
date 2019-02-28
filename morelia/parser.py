@@ -190,8 +190,12 @@ class Parser:
         for klass in self.__nodes:
             if klass.match(line, self.__language):
                 labels = self.__labels_parser.pop_labels()
-                node = klass(source=source, line_number=line_number, labels=labels)
-                node.connect_to_parent(self.steps)
+                node = klass(
+                    source=source,
+                    line_number=line_number,
+                    labels=labels,
+                    predecessors=self.steps,
+                )
                 self.steps.append(node)
                 return node
 

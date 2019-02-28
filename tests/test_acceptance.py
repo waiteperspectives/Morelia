@@ -353,10 +353,10 @@ class MoreliaSuite(TestCase):
         self.assertEqual(["beach", "beach", "beach", "hotel", "hotel", "hotel"], zones)
 
     def test_harvest(self):
-        self.assertEqual(["crock", "of"], Row(r"| crock | of").harvest())
-        self.assertEqual(["crock", "of"], Row(r"| crock | of |").harvest())
+        self.assertEqual(["crock", "of"], Row(r"| crock | of").values)
+        self.assertEqual(["crock", "of"], Row(r"| crock | of |").values)
         self.assertEqual(
-            [r"crane \| wife", "three"], Row(r"| crane \| wife | three").harvest()
+            [r"crane \| wife", "three"], Row(r"| crane \| wife | three").values
         )
 
     def step_party_zone(self, zone):
@@ -468,9 +468,7 @@ class MoreliaSuite(TestCase):
         self.assertRaises(MissingStepError, step.find_step, matcher)
 
     def step_fail_step_without_enough_doc_string(self):
-        step = Given(
-            "Given brings all the boys to the yard it's better than yours"
-        )
+        step = Given("Given brings all the boys to the yard it's better than yours")
         matcher = self._get_default_machers()
         self.assertRaises(MissingStepError, step.find_step, matcher)
 
