@@ -20,7 +20,7 @@ Then running is as simple as:
 import sys
 
 from morelia.formatters import PlainTextFormatter, ColorTextFormatter
-from morelia.parser import Parser, verify  # noqa
+from morelia.parser import Parser, execute_script  # noqa
 
 __version__ = "0.8.0"
 
@@ -62,7 +62,7 @@ def run(
         if as_str is None
         else parser.parse_as_str(filename, as_str, scenario=scenario)
     )
-    return verify(suite, feature, **kwargs)
+    return execute_script(feature, suite, **kwargs)
 
 
 __all__ = ("Parser", "run")

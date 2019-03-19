@@ -3,7 +3,7 @@ import os
 from unittest import TestCase
 
 from morelia.decorators import tags
-from morelia.parser import Parser, verify
+from morelia.parser import Parser, execute_script
 from morelia.grammar import Scenario
 
 pwd = os.path.dirname(os.path.realpath(__file__))
@@ -18,7 +18,7 @@ class BackgroundTest(TestCase):
         filename = os.path.join(pwd, "features/background.feature")
         feature = Parser().parse_file(filename)
         self.__scenarios_num = sum(1 for s in feature.steps if isinstance(s, Scenario))
-        verify(self, feature)
+        execute_script(feature, self)
 
     def step_I_have_some_background_steps_defined(self):
         self.__steps_executed.append("I have some background steps defined")

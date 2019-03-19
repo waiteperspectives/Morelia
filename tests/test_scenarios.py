@@ -4,7 +4,7 @@ from unittest import TestCase
 
 from morelia import run
 from morelia.decorators import tags
-from morelia.parser import Parser, verify
+from morelia.parser import Parser, execute_script
 
 pwd = os.path.dirname(os.path.realpath(__file__))
 
@@ -196,7 +196,7 @@ class InfoOnAllFailingScenariosTest(TestCase):
         self._catch_exception = None
         try:
             tc = self._evaluated_test_case()
-            verify(tc, self.feature)
+            execute_script(self.feature, tc)
         except Exception as e:
             self._catch_exception = e  # warning: possible leak, use with caution
 

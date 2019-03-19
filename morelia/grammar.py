@@ -87,7 +87,7 @@ class Node:
             labels.extend(self.parent.get_labels())
         return labels
 
-    def find_step(self, matcher):
+    def find_method(self, matcher):
         pass
 
     def __iter__(self):
@@ -175,7 +175,7 @@ class Scenario(Node):
         return _permute_indices(dims)
 
     def count_Row_dimensions(self):
-        return [step.rows_number() for step in self.steps]
+        return [step.rows_number for step in self.steps]
 
 
 class Background(Node):
@@ -201,7 +201,18 @@ class Background(Node):
         return [0]
 
 
-class Step(Node):
+class RowParent(Node):
+
+    @property
+    def rows_number(self):
+        rows_number = len(self.get_rows()) - 1  # do not count header
+        return max(0, rows_number)
+
+    def get_rows(self):
+        return [step for step in self.steps if isinstance(step, Row)]
+
+
+class Step(RowParent):
     allowed_parents = (Scenario, Background)
 
     def __init__(self, *args, **kwargs):
@@ -211,7 +222,7 @@ class Step(Node):
     def accept(self, visitor):
         visitor.visit_step(self, self.steps)
 
-    def find_step(self, matcher):
+    def find_method(self, matcher):
         """Find method matching step.
 
         :param IStepMatcher matcher: object matching methods by given predicate
@@ -275,13 +286,6 @@ class Step(Node):
             "<{placeholder}>".format(placeholder=placeholder), table_value
         )
 
-    def get_rows(self):
-        return [step for step in self.steps if isinstance(step, Row)]
-
-    def rows_number(self):
-        rows_number = len(self.get_rows()) - 1  # do not count header
-        return max(0, rows_number)
-
 
 class Given(Step):
     pass
@@ -303,10 +307,9 @@ class But(And):
     pass
 
 
-class Examples(Node):
+class Examples(RowParent):
     allowed_parents = (Scenario,)
 
-    # TODO: verify that Examples handle rows properly
     def accept(self, visitor):
         visitor.visit_examples(self, self.steps)
 

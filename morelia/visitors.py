@@ -136,7 +136,7 @@ class TestVisitor:
             exc.args = (message,) + exc.args[1:]
 
     def run_step(self, node):
-        method, args, kwargs = node.find_step(self._matcher)
+        method, args, kwargs = node.find_method(self._matcher)
         spec = None
         arglist = []
         spec = inspect.getfullargspec(method)

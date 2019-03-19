@@ -31,7 +31,6 @@ class MissingStepErrorTestCase(TestCase):
 
 @tags(["unit"])
 class StepFindStepTestCase(TestCase):
-    """ Test :py:meth:`Step.find_step`. """
 
     def test_should_find_method(self):
         """ Scenario: method found """
@@ -40,7 +39,7 @@ class StepFindStepTestCase(TestCase):
         # Act
         matcher = Mock()
         matcher.find.return_value = (sentinel.method, [], {})
-        result, args, kwargs = obj.find_step(matcher)
+        result, args, kwargs = obj.find_method(matcher)
         # Assert
         self.assertEqual(result, sentinel.method)
 
@@ -51,4 +50,5 @@ class StepFindStepTestCase(TestCase):
         matcher = Mock()
         matcher.find.return_value = (None, [], {})
         matcher.suggest.return_value = ("suggest", "method_name", "docstring")
-        self.assertRaises(MissingStepError, obj.find_step, matcher)
+        with self.assertRaises(MissingStepError):
+            obj.find_method(matcher)

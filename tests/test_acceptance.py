@@ -6,7 +6,7 @@ import sys
 from unittest import TestCase
 
 from morelia.decorators import tags
-from morelia.parser import Parser, verify
+from morelia.parser import Parser, execute_script
 from morelia.grammar import (
     Feature,
     Scenario,
@@ -160,6 +160,7 @@ class MoreliaSuite(TestCase):
         self.assertEqual(step.predicate, "starz upon tharz bucks")
 
     def test_file_without_feature_defined(self):
+        # TODO: allow for files which have at least one step defined
         input = "i be a newbie feature"
         language = self._get_language()
         p = Parser(language=language)
@@ -199,7 +200,7 @@ class MoreliaSuite(TestCase):
             self.assert_regex_contains("linefeed in comment", str(e))
             self.assert_regex_contains("line 2", str(e))
 
-        steps = p.steps
+        steps = p.nodes
         assert steps[0].__class__ == Feature
         step = steps[1]
         assert step.__class__ == Comment
@@ -260,8 +261,8 @@ class MoreliaSuite(TestCase):
         language = self._get_language()
         p = Parser(language=language)
         p.parse_feature(""" | piggy | op |""")
-        assert Row == p.steps[0].__class__
-        assert p.steps[0].predicate == "piggy | op |"
+        assert Row == p.nodes[0].__class__
+        assert p.nodes[0].predicate == "piggy | op |"
 
     def test_Scenes_count_Row_dimensions(self):
         self.assemble_scene_table()
@@ -348,7 +349,7 @@ class MoreliaSuite(TestCase):
         )
         language = self._get_language()
         feature = Parser(language=language).parse_features(scene)
-        verify(self, feature)
+        execute_script(feature, self)
         self.assertEqual(["work", "mall", "jail", "work", "mall", "jail"], crunks)
         self.assertEqual(["beach", "beach", "beach", "hotel", "hotel", "hotel"], zones)
 
@@ -406,7 +407,7 @@ class MoreliaSuite(TestCase):
         feature = Parser(language=language).parse_features(
             self.assemble_short_scene_table()
         )
-        verify(self, feature)
+        execute_script(feature, self)
         self.assertEqual(
             [["Pangolin", "Glyptodon"], ["Pangea", "Laurasia"]], [factions, elements]
         )
@@ -440,37 +441,40 @@ class MoreliaSuite(TestCase):
     def test_find_step_by_name(self):
         step = Given("Given my milkshake")
         matcher = self._get_default_machers()
-        method, args, kwargs = step.find_step(matcher)
+        method, args, kwargs = step.find_method(matcher)
         expect = self.step_my_milkshake
         self.assertEqual(expect, method)
 
     def test_find_step_by_doc_string(self):
         step = And("And my milkshake brings all the boys to the yard")
         matcher = self._get_default_machers()
-        method, args, kwargs = step.find_step(matcher)
+        method, args, kwargs = step.find_method(matcher)
         expect = self.step_my_milkshake
         self.assertEqual(expect, method)
 
     def test_find_step_with_match(self):
         step = When("When my milkshake brings all the girls to the yard")
         matcher = self._get_default_machers()
-        method, args, kwargs = step.find_step(matcher)
+        method, args, kwargs = step.find_method(matcher)
         self.assertEqual(("girls", "the"), args)
 
     def test_step_not_found(self):
         step = Then("Then not there")
         matcher = self._get_default_machers()
-        self.assertRaises(MissingStepError, step.find_step, matcher)
+        with self.assertRaises(MissingStepError):
+            step.find_method(matcher)
 
     def step_fail_without_enough_function_name(self):
         step = And("And my milk")
         matcher = self._get_default_machers()
-        self.assertRaises(MissingStepError, step.find_step, matcher)
+        with self.assertRaises(MissingStepError):
+            step.find_method(matcher)
 
     def step_fail_step_without_enough_doc_string(self):
         step = Given("Given brings all the boys to the yard it's better than yours")
         matcher = self._get_default_machers()
-        self.assertRaises(MissingStepError, step.find_step, matcher)
+        with self.assertRaises(MissingStepError):
+            step.find_method(matcher)
 
     def step_evaluate_step_by_doc_string(self):
         step = Given("Given my milkshake brings all the girls to a yard")
@@ -529,7 +533,7 @@ class MoreliaSuite(TestCase):
         feature = Parser(language=language).parse_file(
             "{}/features/morelia{}.feature".format(pwd, language or "")
         )
-        verify(self, feature)
+        execute_script(feature, self)
 
     def setUp(self):
         self.culture = []
@@ -571,7 +575,7 @@ class MoreliaSuite(TestCase):
                 self.feature_keyword, self.scenario_keyword
             )
             feature = p.parse_features(prefix + self.file_contents)
-            verify(self, feature)
+            execute_script(feature, self)
         except (MissingStepError, AssertionError) as e:
             self.diagnostic = str(e)
 
@@ -618,7 +622,7 @@ class MoreliaSuite(TestCase):
             statements = statements.replace("\\", "")
             language = self._get_language()
             feature = Parser(language=language).parse_features(statements)
-            verify(self, feature)
+            execute_script(feature, self)
             raise Exception("we expect syntax errors here")  # pragma: nocover
         except (SyntaxError, AssertionError) as e:
             e = e.args[0]

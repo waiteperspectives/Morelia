@@ -10,7 +10,6 @@
 #                         \/  |_/   |_/|_/\_/|_/|_/ \/
 import re
 import textwrap
-from collections import OrderedDict
 
 from morelia.exceptions import MissingStepError
 from morelia.formatters import NullFormatter
@@ -33,16 +32,16 @@ from morelia.matchers import MethodNameStepMatcher, ParseStepMatcher, RegexpStep
 from morelia.visitors import TestVisitor
 
 
-def verify(suite, feature, formatter=None, matchers=None, show_all_missing=True):
+def execute_script(script_root, suite, formatter=None, matchers=None, show_all_missing=True):
     if formatter is None:
         formatter = NullFormatter()
     if matchers is None:
         matchers = [RegexpStepMatcher, ParseStepMatcher, MethodNameStepMatcher]
     matcher = _create_matchers_chain(suite, matchers)
     if show_all_missing:
-        _find_and_report_missing(feature, matcher, suite)
+        _find_and_report_missing(script_root, matcher)
     test_visitor = TestVisitor(suite, matcher, formatter)
-    feature.accept(test_visitor)
+    script_root.accept(test_visitor)
 
 
 def _create_matchers_chain(suite, matcher_classes):
@@ -56,25 +55,22 @@ def _create_matchers_chain(suite, matcher_classes):
     return root_matcher
 
 
-def _find_and_report_missing(feature, matcher, suite):
-    not_matched = OrderedDict()
+def _find_and_report_missing(feature, matcher):
+    not_matched = set()
     for descendant in feature:
         try:
-            descendant.find_step(matcher)
+            descendant.find_method(matcher)
         except MissingStepError as e:
-            if e.docstring:
-                not_matched[e.docstring] = e.suggest
-            else:
-                not_matched[e.method_name] = e.suggest
-    suggest = "".join(not_matched.values())
+            not_matched.add(e.suggest)
+    suggest = "".join(not_matched)
     if suggest:
         diagnostic = "Cannot match steps:\n\n{}".format(suggest)
-        suite.fail(diagnostic)
+        assert False, diagnostic
 
 
 class Parser:
     def __init__(self, language=None):
-        self.__nodes = [
+        self.__node_classes = [
             Feature,
             Background,
             Scenario,
@@ -88,10 +84,11 @@ class Parser:
             Examples,
             Step,
         ]
-        self.steps = []
+        self.nodes = []
         if language is None:
             language = "en"
         self.__language = language
+        self.__continuation_marker_re = re.compile(r"\\\s*$")
 
     def parse_as_str(self, filename, prose, scenario=None):
         feature = self.parse_features(prose, scenario=scenario)
@@ -120,7 +117,7 @@ class Parser:
         matched_feature_steps = []
         matched_steps = []
         matching = True
-        for s in self.steps:
+        for s in self.nodes:
             if isinstance(s, Background):
                 matched_feature_steps.append(s)
                 matching = True
@@ -130,16 +127,16 @@ class Parser:
                     matched_feature_steps.append(s)
             if matching is True:
                 matched_steps.append(s)
-        self.steps = matched_steps
-        self.steps[0].steps = matched_feature_steps
+        self.nodes = matched_steps
+        self.nodes[0].steps = matched_feature_steps
 
-        feature = self.steps[0]
+        feature = self.nodes[0]
         assert isinstance(feature, Feature), "Exactly one Feature per file"
         feature.enforce(
             any(isinstance(step, Scenario) for step in feature.steps),
             "Feature without Scenario(s)",
         )
-        return self.steps[0]
+        return self.nodes[0]
 
     def parse_feature(self, lines):
         self.__line_producer = LineSource(lines)
@@ -153,7 +150,7 @@ class Parser:
                     self.__parse_line(line)
         except StopIteration:
             pass
-        return self.steps
+        return self.nodes
 
     def __parse_line(self, line):
         if self.__language_parser.parse(line):
@@ -164,14 +161,14 @@ class Parser:
             return
 
         if self.__docstring_parser.parse(line):
-            previous = self.steps[-1]
+            previous = self.nodes[-1]
             previous.payload = self.__docstring_parser.payload
             return
 
         if self.__parse_node(line):
             return
 
-        if 0 < len(self.steps):
+        if 0 < len(self.nodes):
             self.__append_to_previous_node(line)
         else:
             line_number = self.__line_producer.line_number
@@ -187,27 +184,27 @@ class Parser:
         line = line.rstrip()
         source = line + folded_lines
         line_number = self.__line_producer.line_number
-        for klass in self.__nodes:
+        for klass in self.__node_classes:
             if klass.match(line, self.__language):
                 labels = self.__labels_parser.pop_labels()
                 node = klass(
                     source=source,
                     line_number=line_number,
                     labels=labels,
-                    predecessors=self.steps,
+                    predecessors=self.nodes,
                 )
-                self.steps.append(node)
+                self.nodes.append(node)
                 return node
 
     def __read_folded_lines(self, line):
         folded_lines = [""]
-        while re.search(r"\\\s*$", line):
+        while self.__continuation_marker_re.search(line):
             line = self.__line_producer.get_line()
             folded_lines.append(line)
         return "\n".join(folded_lines)
 
     def __append_to_previous_node(self, line):
-        previous = self.steps[-1]
+        previous = self.nodes[-1]
         previous.append_line(line)
 
 
