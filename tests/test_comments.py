@@ -1,17 +1,17 @@
 # -*- coding: utf-8 -*-
-import os
+from pathlib import Path
 from unittest import TestCase
 
 from morelia import run
 from morelia.decorators import tags
 
-pwd = os.path.dirname(os.path.realpath(__file__))
+features_dir = Path(__file__).parent / "features"
 
 
 @tags(["acceptance"])
 class CommentsTest(TestCase):
     def test_comments(self):
-        filename = os.path.join(pwd, "features/comments.feature")
+        filename = features_dir / "comments.feature"
         run(filename, self)
 
     def step_scenario_will_pass(self):
@@ -25,4 +25,4 @@ class CommentsTest(TestCase):
 
     def step_I_won_t_have_comment_in_interpolated_data_from_table(self, data):
         r"I won\'t have comment in interpolated (.+) from table"
-        self.assertNotIn("#", data)
+        assert "#" not in data

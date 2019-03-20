@@ -180,10 +180,10 @@ class Parser:
             s.enforce(False, "feature files must start with a %s" % feature_name)
 
     def __parse_node(self, line):
+        line_number = self.__line_producer.line_number
         folded_lines = self.__read_folded_lines(line)
         line = line.rstrip()
         source = line + folded_lines
-        line_number = self.__line_producer.line_number
         for klass in self.__node_classes:
             if klass.match(line, self.__language):
                 labels = self.__labels_parser.pop_labels()

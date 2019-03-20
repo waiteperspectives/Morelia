@@ -14,5 +14,5 @@ Feature: Comments support
         When I put comment between rows of table
             | data      |
             # this is a comment between table rows
-            | some data |
+            | some data | 
         Then I won't have comment in interpolated <data> from table

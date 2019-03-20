@@ -355,10 +355,6 @@ class Comment(Node):
         self.enforce("\n" not in self.predicate, "linefeed in comment")
 
 
-def _special_range(n):
-    return range(n) if n else [0]
-
-
 def _permute_indices(arr):
     product_args = list(_imap(arr))
     result = list(itertools.product(*product_args))
@@ -374,3 +370,7 @@ def _imap(*iterables):
             yield _special_range(*args)
         except StopIteration:
             return
+
+
+def _special_range(n):
+    return range(n) if n else [0]

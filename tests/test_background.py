@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
-import os
+from pathlib import Path
 from unittest import TestCase
 
 from morelia.decorators import tags
-from morelia.parser import Parser, execute_script
 from morelia.grammar import Scenario
+from morelia.parser import Parser, execute_script
 
-pwd = os.path.dirname(os.path.realpath(__file__))
+features_dir = Path(__file__).parent / "features"
 
 
 @tags(["acceptance"])
@@ -15,7 +15,7 @@ class BackgroundTest(TestCase):
         self.__steps_executed = []
 
     def test_background(self):
-        filename = os.path.join(pwd, "features/background.feature")
+        filename = features_dir / "background.feature"
         feature = Parser().parse_file(filename)
         self.__scenarios_num = sum(1 for s in feature.steps if isinstance(s, Scenario))
         execute_script(feature, self)
