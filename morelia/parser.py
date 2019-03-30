@@ -8,6 +8,7 @@
 #                                 ,_       __|      ,
 #                        |  |_|  /  |  |  /  |  |  / \_
 #                         \/  |_/   |_/|_/\_/|_/|_/ \/
+from pathlib import Path
 import re
 import textwrap
 
@@ -96,7 +97,7 @@ class Parser:
         return feature
 
     def parse_file(self, filename, scenario=r".*"):
-        with open(filename, "rb") as input_file:
+        with Path(filename).open("rb") as input_file:
             return self.parse_as_str(
                 filename=filename,
                 prose=input_file.read().decode("utf-8"),
