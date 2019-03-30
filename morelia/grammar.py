@@ -9,7 +9,7 @@ PLACEHOLDER_RE = re.compile(r"\<(\w+)\>")
 
 
 class Node:
-    allowed_parents = (None,)
+    allowed_parents = ()
 
     def __init__(
         self, source="", line_number=0, language="en", labels=None, predecessors=[]
@@ -18,22 +18,25 @@ class Node:
         self.__line_number = line_number
         self.__language = language
         self.__labels = labels if labels is not None else []
-        self.parent = None
         self.steps = []
+        self.parent = None
         self.__predicate = self.__extract_predicate()
-        self.__connect_to_parent(predecessors)
+        self.parent = self.__find_parent(predecessors)
+        self.__connect_to_parent()
         self._validate_predicate()
 
-    def __connect_to_parent(self, predecessors):
+    def __connect_to_parent(self):
+        if self.parent:
+            self.parent.add_child(self)
+
+    def __find_parent(self, predecessors):
         allowed_parents = self.allowed_parents
-        try:
-            for step in predecessors[::-1]:
-                if isinstance(step, allowed_parents):
-                    step.add_child(self)
-                    self.parent = step
-                    break
-        except TypeError:
+        if not allowed_parents and predecessors:
             self.enforce(False, "Only one Feature per file")
+        for step in predecessors[::-1]:
+            if isinstance(step, allowed_parents):
+                return step
+        return None
 
     def __extract_predicate(self):
         node_re = self.__get_compiled_pattern(self.__language)
@@ -50,8 +53,7 @@ class Node:
             return __memo[cls, language]
         except KeyError:
             pattern = cls._get_pattern(language)
-            node_re = re.compile(pattern)
-            __memo[cls, language] = node_re
+            node_re = __memo[cls, language] = re.compile(pattern)
             return node_re
 
     @classmethod
@@ -113,10 +115,8 @@ class Node:
             )
 
     def get_filename(self):
-        if self.parent:
-            return self.parent.get_filename()
         try:
-            return self.filename
+            return self.parent.get_filename() if self.parent else self.filename
         except AttributeError:
             return None
 
@@ -165,10 +165,12 @@ class Scenario(Node):
         schedule = self.permute_schedule()
 
         old_row_indices = self.row_indices
-        for indices in schedule:
-            self.row_indices = indices
-            visitor.visit_scenario(self, self.steps)
-        self.row_indices = old_row_indices
+        try:
+            for indices in schedule:
+                self.row_indices = indices
+                visitor.visit_scenario(self, self.steps)
+        finally:
+            self.row_indices = old_row_indices
 
     def permute_schedule(self):
         dims = self.count_Row_dimensions()
@@ -202,7 +204,6 @@ class Background(Node):
 
 
 class RowParent(Node):
-
     @property
     def rows_number(self):
         rows_number = len(self.get_rows()) - 1  # do not count header
