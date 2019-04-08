@@ -185,10 +185,10 @@ class Parser:
         folded_lines = self.__read_folded_lines(line)
         line = line.rstrip()
         source = line + folded_lines
-        for klass in self.__node_classes:
-            if klass.match(line, self.__language):
+        for node_class in self.__node_classes:
+            if node_class.match(line, self.__language):
                 labels = self.__labels_parser.pop_labels()
-                node = klass(
+                node = node_class(
                     source=source,
                     line_number=line_number,
                     labels=labels,
