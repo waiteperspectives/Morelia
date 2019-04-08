@@ -436,14 +436,26 @@ class MethodNameStepMatcher(IStepMatcher):
 
     def match(self, predicate, augmented_predicate, step_methods):
         """See :py:meth:`IStepMatcher.match`."""
+        matches = self.__find_matching_methods(step_methods, predicate)
+        return self.__select_best_match(matches)
+
+    def __find_matching_methods(self, step_methods, predicate):
         clean = re.sub(r"[^\w]", "_?", predicate)
         pattern = "^step_" + clean + "$"
         regexp = re.compile(pattern)
-        step_methods = [method for method in step_methods if regexp.match(method)]
         for method_name in step_methods:
-            method = self._suite.__getattribute__(method_name)
-            return method, (), {}
-        return None, (), {}
+            if regexp.match(method_name):
+                method = self._suite.__getattribute__(method_name)
+                yield (method, (), {})
+
+    def __select_best_match(self, matches):
+        try:
+            best_match = next(iter(matches))
+        except StopIteration:
+            return None, (), {}
+        else:
+            method, args, kwargs = best_match
+            return method, args, kwargs
 
     def suggest(self, predicate):
         """See :py:meth:`IStepMatcher.suggest`."""
@@ -468,22 +480,38 @@ class RegexpStepMatcher(IStepMatcher):
 
     def match(self, predicate, augmented_predicate, step_methods):
         """See :py:meth:`IStepMatcher.match`."""
+        matches = self.__find_matching_methods(step_methods, augmented_predicate)
+        return self.__select_best_match(matches)
+
+    def __find_matching_methods(self, step_methods, augmented_predicate):
+        for method, doc in self.__find_methods_with_docstring(step_methods):
+            doc = re.compile("^" + doc + "$")
+            match = doc.match(augmented_predicate)
+            if match:
+                kwargs = match.groupdict()
+                if not kwargs:
+                    args = match.groups()
+                else:
+                    args = ()
+                yield (method, args, kwargs)
+
+        return None, (), {}
+
+    def __find_methods_with_docstring(self, step_methods):
         for method_name in step_methods:
             method = self._suite.__getattribute__(method_name)
             doc = method.__doc__
-            if not doc:
-                continue
-            doc = re.compile("^" + doc + "$")
-            m = doc.match(augmented_predicate)
+            if doc:
+                yield method, doc
 
-            if m:
-                kwargs = m.groupdict()
-                if not kwargs:
-                    args = m.groups()
-                else:
-                    args = ()
-                return method, args, kwargs
-        return None, (), {}
+    def __select_best_match(self, matches):
+        try:
+            best_match = next(iter(matches))
+        except StopIteration:
+            return None, (), {}
+        else:
+            method, args, kwargs = best_match
+            return method, args, kwargs
 
 
 class ParseStepMatcher(IStepMatcher):
@@ -491,17 +519,33 @@ class ParseStepMatcher(IStepMatcher):
 
     def match(self, predicate, augmented_predicate, step_methods):
         """See :py:meth:`IStepMatcher.match`."""
-        for method_name in step_methods:
-            method = self._suite.__getattribute__(method_name)
-            doc = method.__doc__
-            if not doc:
-                continue
+        matches = self.__find_matching_methods(step_methods, augmented_predicate)
+        return self.__select_best_match(matches)
+
+    def __find_matching_methods(self, step_methods, augmented_predicate):
+        for method, doc in self.__find_methods_with_docstring(step_methods):
             match = parse.parse(doc, augmented_predicate)
             if match:
                 args = match.fixed
                 kwargs = match.named
-                return method, tuple(args), kwargs
-        return None, (), {}
+                yield (len(args) + len(kwargs), method, tuple(args), kwargs)
+
+    def __find_methods_with_docstring(self, step_methods):
+        for method_name in step_methods:
+            method = self._suite.__getattribute__(method_name)
+            doc = method.__doc__
+            if doc:
+                yield method, doc
+
+    def __select_best_match(self, matches):
+        matches = sorted(matches, reverse=True)
+        try:
+            best_match = next(iter(matches))
+        except StopIteration:
+            return None, (), {}
+        else:
+            _, method, args, kwargs = best_match
+            return method, args, kwargs
 
     def replace_placeholders(self, predicate, arguments):
         arguments = iter(arguments)
