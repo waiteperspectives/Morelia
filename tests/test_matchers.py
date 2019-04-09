@@ -453,120 +453,137 @@ class DocStringStepMatcherSuggestTestCase(unittest.TestCase):
 class ParseStepMatcherMatchTestCase(unittest.TestCase):
     """ Test :py:meth:`ParseStepMatcher.match`. """
 
+    def setUp(self):
+        super().setUp()
+        self.predicate = "my milkshake brings all the boys to the yard"
+        self.augmented_predicate = "my milkshake brings all the boys to the yard"
+        self.method_name = "step_{}".format(self.predicate)
+
     def test_should_return_method_and_args(self):
         """ Scenario: match by docstring """
-        # Arrange
-        predicate = "my milkshake brings all the boys to the yard"
-        augmented_predicate = "my milkshake brings all the boys to the yard"
-        method_name = "step_%s" % predicate
         docstring = r"my milkshake brings all the {} to {} yard"
         method = Mock(__doc__=docstring)
-        methods = {method_name: method}
-        suite = Mock(**methods)
-        obj = ParseStepMatcher(suite)
-        # Act
-        result_method, result_args, result_kwargs = obj.match(
-            predicate, augmented_predicate, methods.keys()
+        methods = {self.method_name: method}
+        matcher = self.__create_matcher(methods)
+        matched = matcher.match(
+            self.predicate, self.augmented_predicate, methods.keys()
         )
-        # Assert
-        self.assertEqual(result_method, method)
-        self.assertEqual(result_args, ("boys", "the"))
+        expected = (method, ("boys", "the"), {})
+        self.__assert_result_matches(expected, matched)
 
     def test_should_return_method_and_kwargs(self):
         """ Scenario: match by docstring with named groups """
-        # Arrange
-        predicate = "my milkshake brings all the boys to the yard"
-        augmented_predicate = "my milkshake brings all the boys to the yard"
-        method_name = "step_%s" % predicate
         docstring = r"my milkshake brings all the {who} to {other} yard"
         method = Mock(__doc__=docstring)
-        methods = {method_name: method}
-        suite = Mock(**methods)
-        obj = ParseStepMatcher(suite)
-        # Act
-        result_method, result_args, result_kwargs = obj.match(
-            predicate, augmented_predicate, methods.keys()
+        methods = {self.method_name: method}
+        matcher = self.__create_matcher(methods)
+        matched = matcher.match(
+            self.predicate, self.augmented_predicate, methods.keys()
         )
-        # Assert
-        self.assertEqual(result_method, method)
-        self.assertEqual(result_kwargs, {"who": "boys", "other": "the"})
+        expected = (method, (), {"who": "boys", "other": "the"})
+        self.__assert_result_matches(expected, matched)
 
     def test_should_return_method_args_and_kwargs_with_mixed_groups(self):
         """ Scenario: match by docstring with named and not named groups """
-        # Arrange
-        predicate = "my milkshake brings all the boys to the yard"
-        augmented_predicate = "my milkshake brings all the boys to the yard"
-        method_name = "step_%s" % predicate
         docstring = r"my milkshake brings all the {who} to {} yard"
         method = Mock(__doc__=docstring)
-        methods = {method_name: method}
-        suite = Mock(**methods)
-        obj = ParseStepMatcher(suite)
-        # Act
-        result_method, result_args, result_kwargs = obj.match(
-            predicate, augmented_predicate, methods.keys()
+        methods = {self.method_name: method}
+        matcher = self.__create_matcher(methods)
+        matched = matcher.match(
+            self.predicate, self.augmented_predicate, methods.keys()
         )
-        # Assert
-        self.assertEqual(result_method, method)
-        self.assertEqual(result_args, ("the",))
-        self.assertEqual(result_kwargs, {"who": "boys"})
+        expected = (method, ("the",), {"who": "boys"})
+        self.__assert_result_matches(expected, matched)
 
     def test_should_return_none_if_docstring_not_mached(self):
         """ Scenario: no match by docstring """
-        # Arrange
         predicate = "not there"
         augmented_predicate = "not there"
         method_name = "step_%s" % predicate
         docstring = r"my milkshake brings all the {who} to {} yard"
         method = Mock(__doc__=docstring)
         methods = {method_name: method}
-        suite = Mock(**methods)
-        obj = ParseStepMatcher(suite)
-        # Act
-        result_method, result_args, result_kwargs = obj.match(
+        matcher = self.__create_matcher(methods)
+        result_method, result_args, result_kwargs = matcher.match(
             predicate, augmented_predicate, methods.keys()
         )
-        # Assert
         self.assertTrue(result_method is None)
         self.assertEqual(result_args, ())
 
     def test_should_return_none_if_no_docstring(self):
         """ Scenario: no match by docstring """
-        # Arrange
-        predicate = "my milkshake brings all the boys to the yard"
-        augmented_predicate = "my milkshake brings all the boys to the yard"
-        method_name = "step_%s" % predicate
         method = Mock(__doc__="")
-        methods = {method_name: method}
-        suite = Mock(**methods)
-        obj = ParseStepMatcher(suite)
-        # Act
-        result_method, result_args, result_kwargs = obj.match(
-            predicate, augmented_predicate, methods.keys()
+        methods = {self.method_name: method}
+        matcher = self.__create_matcher(methods)
+        result_method, result_args, result_kwargs = matcher.match(
+            self.predicate, self.augmented_predicate, methods.keys()
         )
-        # Assert
         self.assertTrue(result_method is None)
         self.assertEqual(result_args, ())
 
     def test_should_return_second_method_and_matches(self):
         """ Scenario: many methods """
-        # Arrange
-        predicate = "my milkshake brings all the boys to the yard"
-        augmented_predicate = "my milkshake brings all the boys to the yard"
-        method_name = "step_%s" % predicate
         docstring = r"my milkshake brings all the {who} to {} yard"
         method = Mock(__doc__=docstring)
-        methods = {method_name: method, "step_other": sentinel.method}
-        suite = Mock(**methods)
-        obj = ParseStepMatcher(suite)
-        # Act
-        result_method, result_args, result_kwargs = obj.match(
-            predicate, augmented_predicate, [method_name, "step_other"]
+        methods = {self.method_name: method, "step_other": sentinel.method}
+        matcher = self.__create_matcher(methods)
+        matched = matcher.match(
+            self.predicate, self.augmented_predicate, [self.method_name, "step_other"]
         )
-        # Assert
-        self.assertEqual(result_method, method)
-        self.assertEqual(result_args, ("the",))
-        self.assertEqual(result_kwargs, {"who": "boys"})
+        expected = (method, ("the",), {"who": "boys"})
+        self.__assert_result_matches(expected, matched)
+
+    def test_should_match_method_with_more_arguments(self):
+        one_arg_docstring = r"my milkshake brings all the {who}"
+        two_arg_docstring = r"my milkshake brings all the {who} to {} yard"
+
+        one_arg_method = Mock(__doc__=one_arg_docstring)
+        two_arg_method = Mock(__doc__=two_arg_docstring)
+        methods = {
+            "step_one_arg_method": one_arg_method,
+            "step_two_arg_method": two_arg_method,
+        }
+        matcher = self.__create_matcher(methods)
+        matched = matcher.match(
+            self.predicate,
+            self.augmented_predicate,
+            ["step_one_arg_method", "step_two_arg_method"],
+        )
+        expected = (two_arg_method, ("the",), {"who": "boys"})
+        self.__assert_result_matches(expected, matched)
+
+    def test_should_ignore_methods_with_not_full_match(self):
+        predicate = "my milkshake brings all the boys"
+        augmented_predicate = "my milkshake brings all the boys"
+        one_arg_docstring = r"my milkshake brings all the {who}"
+        two_arg_docstring = r"my milkshake brings all the {who} to {} yard"
+
+        one_arg_method = Mock(__doc__=one_arg_docstring)
+        two_arg_method = Mock(__doc__=two_arg_docstring)
+        methods = {
+            "step_one_arg_method": one_arg_method,
+            "step_two_arg_method": two_arg_method,
+        }
+        matcher = self.__create_matcher(methods)
+        matched = matcher.match(
+            predicate,
+            augmented_predicate,
+            ["step_one_arg_method", "step_two_arg_method"],
+        )
+        expected = (one_arg_method, (), {"who": "boys"})
+        self.__assert_result_matches(expected, matched)
+
+    def __assert_result_matches(self, expected, actual):
+        expected_method, expected_args, expected_kwargs = expected
+        actual_method, actual_args, actual_kwargs = actual
+        self.assertEqual(expected_method, actual_method)
+        self.assertEqual(expected_args, actual_args)
+        self.assertEqual(expected_kwargs, actual_kwargs)
+
+    def __create_matcher(self, methods):
+        suite = Mock(**methods)
+        matcher = ParseStepMatcher(suite)
+        return matcher
 
 
 @tags(["unit"])
