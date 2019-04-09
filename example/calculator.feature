@@ -25,6 +25,8 @@ Scenario: Add two numbers - table
     And I enter "<num2>" into the calculator
     And I press add
     Then the result should be "<result>" on the screen
+
+    Examples:
         | num1 | num2 | result |
         | 2    | 3    | 5      |
         | 4    | 5    | 9      |

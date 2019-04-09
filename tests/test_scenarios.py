@@ -1,12 +1,54 @@
-import os.path
 import re
+from pathlib import Path
 from unittest import TestCase
 
 from morelia import run
 from morelia.decorators import tags
-from morelia.parser import Parser
+from morelia.grammar import Scenario
+from morelia.parser import Parser, execute_script
 
-pwd = os.path.dirname(os.path.realpath(__file__))
+features_dir = Path(__file__).parent / "features"
+
+
+@tags(["acceptance"])
+class ScenarioTest(TestCase):
+    def test_is_parsed(self):
+        source = "Scenario: range free Vegans"
+        steps = Parser().parse_feature(source)
+        step = steps[0]
+        assert isinstance(step, Scenario)
+        assert step.predicate == "range free Vegans"
+
+    def test_prefixed_with_spaces_is_parsed(self):
+        source = "  Scenario: with spaces"
+        steps = Parser().parse_feature(source)
+        step = steps[0]
+        assert isinstance(step, Scenario)
+        assert step.predicate == "with spaces"
+
+    def test_scenario_with_steps_is_parsed(self):
+        scenario = self.__sample_scenario()
+        steps = Parser().parse_feature(scenario)
+        scenario, given_step, and_step, when_step, then_step = steps
+        assert scenario.predicate == "See all vendors"
+        assert (
+            given_step.predicate == "I am logged in as a user in the administrator role"
+        )
+        assert and_step.predicate == "There are 3 vendors"
+        assert when_step.predicate == "I go to the manage vendors page"
+        assert then_step.predicate == "I should see the first 3 vendor names"
+
+    def test_links_to_their_steps(self):
+        steps = Parser().parse_feature(self.__sample_scenario())
+        scenario, given_step, and_step, when_step, then_step = steps
+        self.assertEqual([given_step, and_step, when_step, then_step], scenario.steps)
+
+    def __sample_scenario(self):
+        return """Scenario: See all vendors
+                      Given I am logged in as a user in the administrator role
+                        And There are 3 vendors
+                       When I go to the manage vendors page
+                       Then I should see the first 3 vendor names"""
 
 
 class SampleTestCaseMixIn:
@@ -60,19 +102,21 @@ class SampleTestCaseMixIn:
 @tags(["acceptance"])
 class RegexSpecifiedScenariosTest(SampleTestCaseMixIn, TestCase):
     def test_should_only_run_matching_scenarios(self):
-        filename = os.path.join(pwd, "features/scenario_matching.feature")
+        filename = features_dir / "scenario_matching.feature"
         self._matching_pattern = r"Scenario Matches [12]"
-        self._ast = Parser().parse_file(filename, scenario=self._matching_pattern)
+        self.feature = Parser().parse_file(filename, scenario=self._matching_pattern)
         scenario_matcher_re = re.compile(self._matching_pattern)
-        for included_scenario in self._ast.steps[0].steps:
+        for included_scenario in self.feature.steps:
             self.assertIsNotNone(scenario_matcher_re.match(included_scenario.predicate))
 
     def test_fail_informatively_on_bad_scenario_regex(self):
-        filename = os.path.join(pwd, "features/scenario_matching.feature")
+        filename = features_dir / "scenario_matching.feature"
         self._matching_pattern = "\\"
 
         with self.assertRaises(SyntaxError):
-            self._ast = Parser().parse_file(filename, scenario=self._matching_pattern)
+            self.feature = Parser().parse_file(
+                filename, scenario=self._matching_pattern
+            )
 
 
 @tags(["acceptance"])
@@ -94,15 +138,15 @@ class InfoOnAllFailingScenariosTest(TestCase):
             'Scenario: Divide two numbers\n\\s*Then the result should be "4" on the screen\n\\s*.*AssertionError:\\s*2 != 4',
             re.DOTALL,
         )
-        filename = os.path.join(pwd, "features/info_on_all_failing_scenarios.feature")
+        filename = features_dir / "info_on_all_failing_scenarios.feature"
         run(filename, self)
 
     def step_feature_with_number_scenarios_has_been_described_in_file(
         self, feature_file
     ):
         r'that feature with 4 scenarios has been described in file "([^"]+)"'
-        filename = os.path.join(pwd, "features/{}".format(feature_file))
-        self._ast = Parser().parse_file(filename)
+        filename = features_dir / feature_file
+        self.feature = Parser().parse_file(filename)
 
     def step_that_test_case_passing_number_and_number_scenario_and_failing_number_and_number_has_been_written(
         self
@@ -194,7 +238,7 @@ class InfoOnAllFailingScenariosTest(TestCase):
         self._catch_exception = None
         try:
             tc = self._evaluated_test_case()
-            self._ast.evaluate(tc)
+            execute_script(self.feature, tc)
         except Exception as e:
             self._catch_exception = e  # warning: possible leak, use with caution
 

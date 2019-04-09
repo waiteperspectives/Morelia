@@ -8,69 +8,70 @@
 #                                 ,_       __|      ,
 #                        |  |_|  /  |  |  /  |  |  / \_
 #                         \/  |_/   |_/|_/\_/|_/|_/ \/
+from pathlib import Path
 import re
 import textwrap
 
-
+from morelia.exceptions import MissingStepError
 from morelia.formatters import NullFormatter
 from morelia.grammar import (
-    Feature,
-    Background,
-    Scenario,
-    Given,
-    When,
-    Then,
     And,
+    Background,
     But,
-    Row,
     Comment,
     Examples,
+    Feature,
+    Given,
+    Row,
+    Scenario,
     Step,
+    Then,
+    When,
 )
-from morelia.matchers import RegexpStepMatcher, ParseStepMatcher, MethodNameStepMatcher
-from morelia.visitors import TestVisitor, StepMatcherVisitor
 from morelia.i18n import TRANSLATIONS
+from morelia.matchers import MethodNameStepMatcher, ParseStepMatcher, RegexpStepMatcher
+from morelia.visitors import TestVisitor
 
 
-class AST:
-    def __init__(
-        self,
-        steps,
-        test_visitor_class=TestVisitor,
-        matcher_visitor_class=StepMatcherVisitor,
-    ):
-        self.steps = steps
-        self._test_visitor_class = test_visitor_class
-        self._matcher_visitor_class = matcher_visitor_class
+def execute_script(script_root, suite, formatter=None, matchers=None, show_all_missing=True):
+    if formatter is None:
+        formatter = NullFormatter()
+    if matchers is None:
+        matchers = [RegexpStepMatcher, ParseStepMatcher, MethodNameStepMatcher]
+    matcher = _create_matchers_chain(suite, matchers)
+    if show_all_missing:
+        _find_and_report_missing(script_root, matcher)
+    test_visitor = TestVisitor(suite, matcher, formatter)
+    script_root.accept(test_visitor)
 
-    def evaluate(self, suite, formatter=None, matchers=None, show_all_missing=True):
-        if matchers is None:
-            matchers = [RegexpStepMatcher, ParseStepMatcher, MethodNameStepMatcher]
-        matcher = self._create_matchers_chain(suite, matchers)
-        feature = self.steps[0]
-        if show_all_missing:
-            matcher_visitor = self._matcher_visitor_class(suite, matcher)
-            feature.accept(matcher_visitor)
-            matcher_visitor.report_missing()
-        if formatter is None:
-            formatter = NullFormatter()
-        test_visitor = self._test_visitor_class(suite, matcher, formatter)
-        feature.accept(test_visitor)
 
-    def _create_matchers_chain(self, suite, matcher_classes):
-        root_matcher = None
-        for matcher_class in matcher_classes:
-            matcher = matcher_class(suite)
-            try:
-                root_matcher.add_matcher(matcher)
-            except AttributeError:
-                root_matcher = matcher
-        return root_matcher
+def _create_matchers_chain(suite, matcher_classes):
+    root_matcher = None
+    for matcher_class in matcher_classes:
+        matcher = matcher_class(suite)
+        try:
+            root_matcher.add_matcher(matcher)
+        except AttributeError:
+            root_matcher = matcher
+    return root_matcher
+
+
+def _find_and_report_missing(feature, matcher):
+    not_matched = set()
+    for descendant in feature:
+        try:
+            descendant.find_method(matcher)
+        except MissingStepError as e:
+            not_matched.add(e.suggest)
+    suggest = "".join(not_matched)
+    if suggest:
+        diagnostic = "Cannot match steps:\n\n{}".format(suggest)
+        assert False, diagnostic
 
 
 class Parser:
     def __init__(self, language=None):
-        self.thangs = [
+        self.__node_classes = [
             Feature,
             Background,
             Scenario,
@@ -84,25 +85,19 @@ class Parser:
             Examples,
             Step,
         ]
-        self.steps = []
+        self.nodes = []
         if language is None:
             language = "en"
-        self._language = language
-        self._prepare_patterns(language)
-
-    def _prepare_patterns(self, language):
-        self._patterns = []
-        for thang in self.thangs:
-            pattern = thang.get_pattern(language)
-            self._patterns.append((re.compile(pattern), thang))
+        self.__language = language
+        self.__continuation_marker_re = re.compile(r"\\\s*$")
 
     def parse_as_str(self, filename, prose, scenario=None):
-        ast = self.parse_features(prose, scenario=scenario)
-        self.steps[0].filename = filename
-        return ast
+        feature = self.parse_features(prose, scenario=scenario)
+        feature.filename = filename
+        return feature
 
     def parse_file(self, filename, scenario=r".*"):
-        with open(filename, "rb") as input_file:
+        with Path(filename).open("rb") as input_file:
             return self.parse_as_str(
                 filename=filename,
                 prose=input_file.read().decode("utf-8"),
@@ -123,7 +118,7 @@ class Parser:
         matched_feature_steps = []
         matched_steps = []
         matching = True
-        for s in self.steps:
+        for s in self.nodes:
             if isinstance(s, Background):
                 matched_feature_steps.append(s)
                 matching = True
@@ -133,92 +128,85 @@ class Parser:
                     matched_feature_steps.append(s)
             if matching is True:
                 matched_steps.append(s)
-        self.steps = matched_steps
-        self.steps[0].steps = matched_feature_steps
+        self.nodes = matched_steps
+        self.nodes[0].steps = matched_feature_steps
 
-        ast = AST(self.steps)
-        feature = self.steps[0]
+        feature = self.nodes[0]
         assert isinstance(feature, Feature), "Exactly one Feature per file"
         feature.enforce(
             any(isinstance(step, Scenario) for step in feature.steps),
             "Feature without Scenario(s)",
         )
-        return ast
+        return self.nodes[0]
 
-    def _parse_line(self, line):
-        if self._language_parser.parse(line):
-            self._prepare_patterns(self._language_parser.language)
+    def parse_feature(self, lines):
+        self.__line_producer = LineSource(lines)
+        self.__docstring_parser = DocStringParser(self.__line_producer)
+        self.__language_parser = LanguageParser(default_language=self.__language)
+        self.__labels_parser = LabelParser()
+        try:
+            while True:
+                line = self.__line_producer.get_line()
+                if line:
+                    self.__parse_line(line)
+        except StopIteration:
+            pass
+        return self.nodes
+
+    def __parse_line(self, line):
+        if self.__language_parser.parse(line):
+            self.__language = self.__language_parser.language
             return
 
-        if self._labels_parser.parse(line):
+        if self.__labels_parser.parse(line):
             return
 
-        if self._docstring_parser.parse(line):
-            previous = self.steps[-1]
-            previous.payload = self._docstring_parser.payload
+        if self.__docstring_parser.parse(line):
+            previous = self.nodes[-1]
+            previous.payload = self.__docstring_parser.payload
             return
 
-        if self._anneal_last_broken_line(line):
+        if self.__parse_node(line):
             return
 
-        if self._parse_thang(line):
-            return
-
-        if 0 < len(self.steps):
-            self._append_to_previous_node(line)
+        if 0 < len(self.nodes):
+            self.__append_to_previous_node(line)
         else:
-            s = Step("???", line)
-            s.line_number = self._line_producer.line_number
-            feature_name = TRANSLATIONS[self._language_parser.language].get(
+            line_number = self.__line_producer.line_number
+            s = Step(line, line_number=line_number)
+            feature_name = TRANSLATIONS[self.__language_parser.language].get(
                 "feature", "Feature"
             )
             feature_name = feature_name.replace("|", " or ")
             s.enforce(False, "feature files must start with a %s" % feature_name)
 
-    def parse_feature(self, lines):
-        self._line_producer = LineSource(lines)
-        self._docstring_parser = DocStringParser(self._line_producer)
-        self._language_parser = LanguageParser(default_language=self._language)
-        self._labels_parser = LabelParser()
-        try:
-            while True:
-                line = self._line_producer.get_line()
-                if line:
-                    self._parse_line(line)
-        except StopIteration:
-            pass
-        return self.steps
-
-    def _anneal_last_broken_line(self, line):
-        if self.steps == []:
-            return False
-        last_line = self.last_node.predicate
-
-        if re.search(r"\\\s*$", last_line):
-            last = self.last_node
-            last.predicate += "\n" + line
-            return True
-
-        return False
-
-    def _parse_thang(self, line):
+    def __parse_node(self, line):
+        line_number = self.__line_producer.line_number
+        folded_lines = self.__read_folded_lines(line)
         line = line.rstrip()
-
-        for regexp, klass in self._patterns:
-            m = regexp.match(line)
-
-            if m and len(m.groups()) > 0:
-                node = klass(**m.groupdict())
-                node.add_labels(self._labels_parser.pop_labels())
-                node.connect_to_parent(self.steps, self._line_producer.line_number)
-                self.last_node = node
+        source = line + folded_lines
+        for node_class in self.__node_classes:
+            if node_class.match(line, self.__language):
+                labels = self.__labels_parser.pop_labels()
+                node = node_class(
+                    source=source,
+                    line_number=line_number,
+                    labels=labels,
+                    predecessors=self.nodes,
+                )
+                self.nodes.append(node)
                 return node
 
-    def _append_to_previous_node(self, line):
-        previous = self.steps[-1]
-        previous.predicate += "\n" + line.strip()
-        previous.predicate = previous.predicate.strip()
-        previous.validate_predicate()
+    def __read_folded_lines(self, line):
+        folded_lines = [""]
+        while self.__continuation_marker_re.search(line):
+            line = self.__line_producer.get_line()
+            folded_lines.append(line)
+        return "\n".join(folded_lines)
+
+    def __append_to_previous_node(self, line):
+        previous = self.nodes[-1]
+        previous.append_line(line)
 
 
 class LabelParser:
@@ -256,8 +244,8 @@ class LanguageParser:
     def __init__(self, lang_pattern=r"^# language: (\w+)", default_language=None):
         if default_language is None:
             default_language = "en"
-        self._language = default_language
-        self._lang_re = re.compile(lang_pattern)
+        self.__language = default_language
+        self.__lang_re = re.compile(lang_pattern)
 
     def parse(self, line):
         """Parse language directive.
@@ -266,22 +254,22 @@ class LanguageParser:
         :returns: True if line contains language directive
         :side effects: sets self.language to parsed language
         """
-        match = self._lang_re.match(line)
+        match = self.__lang_re.match(line)
         if match:
-            self._language = match.groups()[0]
+            self.__language = match.groups()[0]
             return True
         return False
 
     @property
     def language(self):
-        return self._language
+        return self.__language
 
 
 class DocStringParser:
     def __init__(self, source, pattern=r'\s*"""\s*'):
-        self._source = source
-        self._docstring_re = re.compile(pattern)
-        self._payload = []
+        self.__source = source
+        self.__docstring_re = re.compile(pattern)
+        self.__payload = []
 
     def parse(self, line):
         """Parse docstring payload.
@@ -290,35 +278,35 @@ class DocStringParser:
         :returns: True if docstring parsed
         :side effects: sets self.payload to parsed docstring
         """
-        match = self._docstring_re.match(line)
+        match = self.__docstring_re.match(line)
         if match:
             start_line = line
-            self._payload = []
-            line = self._source.get_line()
+            self.__payload = []
+            line = self.__source.get_line()
             while line != start_line:
-                self._payload.append(line)
-                line = self._source.get_line()
+                self.__payload.append(line)
+                line = self.__source.get_line()
             return True
         return False
 
     @property
     def payload(self):
-        return textwrap.dedent("\n".join(self._payload))
+        return textwrap.dedent("\n".join(self.__payload))
 
 
 class LineSource:
     def __init__(self, text):
-        self._lines = iter([line for line in text.split("\n") if line])
-        self._line_number = 0
+        self.__lines = iter(line for line in text.split("\n") if line)
+        self.__line_number = 0
 
     def get_line(self):
         """Return next line.
 
         :returns: next line of text
         """
-        self._line_number += 1
-        return next(self._lines)
+        self.__line_number += 1
+        return next(self.__lines)
 
     @property
     def line_number(self):
-        return self._line_number
+        return self.__line_number

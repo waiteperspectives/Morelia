@@ -180,7 +180,7 @@ class IFormatter:
     def output(self, node, line, status, duration):
         """Method called after execution each step.
 
-        :param INode node: node representing step
+        :param node: node representing step
         :param str line: text of executed step
         :param str status: execution status
         :param float duration: step execution duration
