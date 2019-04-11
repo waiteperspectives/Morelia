@@ -15,9 +15,9 @@ class DocStringTest(TestCase):
         run(filename, self)
 
     def step_I_put_docstring_after_step_definition(self, _text=None):
-        self.assertIsNotNone(_text)
+        assert _text is not None
         self._text = _text
 
     def step_I_will_get_docstring_passed_in__text_variable(self):
         r"I will get docstring passed in _text variable"
-        self.assertEqual(self._text, "Docstring line1\nline2")
+        assert self._text == "Docstring line1\nline2"

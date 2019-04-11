@@ -29,7 +29,7 @@ class ConfigGetTagsPatternTestCase(unittest.TestCase):
         # Act
         pattern = obj.get_tags_pattern()
         # Assert
-        self.assertEqual(pattern, "tag1,tag2")
+        assert pattern == "tag1,tag2"
 
     @patch("morelia.config.os")
     def test_should_not_tags_pattern_from_file_if_no_option(self, os):
@@ -50,7 +50,7 @@ class ConfigGetTagsPatternTestCase(unittest.TestCase):
         # Act
         pattern = obj.get_tags_pattern()
         # Assert
-        self.assertEqual(pattern, "")
+        assert pattern == ""
 
     @patch("morelia.config.os")
     def test_should_not_tags_pattern_from_file_if_no_section(self, os):
@@ -71,7 +71,7 @@ class ConfigGetTagsPatternTestCase(unittest.TestCase):
         # Act
         pattern = obj.get_tags_pattern()
         # Assert
-        self.assertEqual(pattern, "")
+        assert pattern == ""
 
     @patch("morelia.config.os")
     def test_should_return_tags_pattern_from_environment(self, os):
@@ -91,7 +91,7 @@ class ConfigGetTagsPatternTestCase(unittest.TestCase):
         # Act
         pattern = obj.get_tags_pattern()
         # Assert
-        self.assertEqual(pattern, "tag1,tag2")
+        assert pattern == "tag1,tag2"
 
 
 @tags(["unit"])
@@ -104,7 +104,7 @@ class ConfigInitTestCase(unittest.TestCase):
         # Act
         obj = Config(config_files=["sample.cfg"])
         # Assert
-        self.assertEqual(len(obj._config_files), 1)
+        assert len(obj._config_files) == 1
 
     def test_should_create_with_default_parser(self):
         """ Scenario: create with default parser """
@@ -112,7 +112,7 @@ class ConfigInitTestCase(unittest.TestCase):
         # Act
         obj = Config()
         # Assert
-        self.assertTrue(issubclass(SafeConfigParser, obj._config_parser_class))
+        assert issubclass(SafeConfigParser, obj._config_parser_class)
 
 
 @tags(["unit"])
@@ -126,7 +126,7 @@ class GetConfigTestCase(unittest.TestCase):
         # Act
         config = get_config()
         # Assert
-        self.assertIsNotNone(config)
+        assert config is not None
 
     @patch("morelia.config.Config")
     def test_should_return_memoized_config_object(self, Config):
@@ -136,5 +136,5 @@ class GetConfigTestCase(unittest.TestCase):
         config1 = get_config()
         config2 = get_config()
         # Assert
-        self.assertIsNotNone(config1)
-        self.assertEqual(config1, config2)
+        assert config1 is not None
+        assert config1 == config2

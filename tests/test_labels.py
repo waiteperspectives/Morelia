@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
-import os
+from pathlib import Path
 from unittest import TestCase
 
-from morelia import run
 from morelia.decorators import tags
+from morelia.parser import Parser, execute_script
 
-pwd = os.path.dirname(os.path.realpath(__file__))
+features_dir = Path(__file__).parent / "features"
 
 
 @tags(["acceptance"])
@@ -14,8 +14,9 @@ class LabelTest(TestCase):
         self.__labels = []
 
     def test_labels(self):
-        filename = os.path.join(pwd, "features/labels.feature")
-        run(filename, self)
+        filename = features_dir / "labels.feature"
+        feature = Parser().parse_file(filename)
+        execute_script(feature, self)
 
     def step_step_which_accepts__labels_variable_is_executed(self, _labels=None):
         self.__labels = _labels
@@ -24,10 +25,10 @@ class LabelTest(TestCase):
         r'it will get labels "([^"]+)"'
 
         expected = labels.split(",")
-        self.assertEqual(set(expected), set(self.__labels))
+        assert set(expected) == set(self.__labels)
 
     def step_step_which_does_not_accepts__labels_variable_is_executed(self):
         pass
 
     def step_it_will_not_get_any_labels(self):
-        self.assertEqual(0, len(self.__labels))
+        assert 0 == len(self.__labels)

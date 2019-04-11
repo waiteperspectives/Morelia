@@ -67,7 +67,7 @@ class BackgroundTest(TestCase):
     ):
         background_step_idx = self.__steps_executed.index(background_step)
         scenario_given_step_idx = self.__steps_executed.index(scenario_step)
-        self.assertLess(background_step_idx, scenario_given_step_idx, msg=msg)
+        assert background_step_idx < scenario_given_step_idx, msg
 
     def step_step_contains_angle_variable(self, angle_variable):
         r"step contains (.+)"
@@ -75,19 +75,16 @@ class BackgroundTest(TestCase):
 
     def step_background_step_with_angle_variable_will_be_executed(self, angle_variable):
         r"background step with (.+) will be executed"
-        self.assertEqual(angle_variable, self.__angle_variable)
+        assert angle_variable == self.__angle_variable
 
     def step_all_scenarios_are_executed(self):
         pass
 
     def step_background_steps_will_be_executed_once_per_every_scenario_case(self):
-        self.assertLessEqual(
-            self.__scenarios_num,
-            self.__background_step_ran,
-            msg="Background step not executed for every scenario",
-        )
-        self.assertGreaterEqual(
-            self.__scenarios_num,
-            self.__background_step_ran,
-            msg="Background step executed more then once for every scenario",
-        )
+        assert (
+            self.__scenarios_num <= self.__background_step_ran
+        ), "Background step not executed for every scenario"
+
+        assert (
+            self.__scenarios_num >= self.__background_step_ran
+        ), "Background step executed more then once for every scenario"

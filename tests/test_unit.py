@@ -25,8 +25,8 @@ class MissingStepErrorTestCase(TestCase):
             "",
         )
         # Assert
-        self.assertTrue(result is not None)
-        self.assertEqual(result.predicate, "predicate line")
+        assert result is not None
+        assert result.predicate == "predicate line"
 
 
 @tags(["unit"])
@@ -41,7 +41,7 @@ class StepFindStepTestCase(TestCase):
         matcher.find.return_value = (sentinel.method, [], {})
         result, args, kwargs = obj.find_method(matcher)
         # Assert
-        self.assertEqual(result, sentinel.method)
+        assert result == sentinel.method
 
     def test_should_not_find_method(self):
         """ Scenario: not found """
