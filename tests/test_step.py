@@ -77,7 +77,7 @@ class StepTest(TestCase):
 
     def test_strip_predicates(self):
         step = Parser().parse_feature("  Given   gangsta girl   \t     ")[0]
-        self.assertEqual(step.predicate, "gangsta girl")
+        assert step.predicate == "gangsta girl"
 
     def test_how_to_identify_trees_from_quite_a_long_distance_away(self):
         assert Given != Step

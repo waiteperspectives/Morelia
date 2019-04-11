@@ -33,7 +33,7 @@ class IStepMatcherAddMatcherTestCase(unittest.TestCase):
         # Act
         matcher1.add_matcher(matcher2)
         # Assert
-        self.assertEqual(matcher1._next, matcher2)
+        assert matcher1._next == matcher2
 
     def test_should_delegate_adding_matcher(self):
         """ Scenario: delegating add """
@@ -46,8 +46,8 @@ class IStepMatcherAddMatcherTestCase(unittest.TestCase):
         # Act
         matcher1.add_matcher(matcher3)
         # Assert
-        self.assertEqual(matcher1._next, matcher2)
-        self.assertEqual(matcher2._next, matcher3)
+        assert matcher1._next == matcher2
+        assert matcher2._next == matcher3
 
     def test_should_chain_adding_matchers(self):
         """ Scenario: chaining """
@@ -59,8 +59,8 @@ class IStepMatcherAddMatcherTestCase(unittest.TestCase):
         # Act
         matcher1.add_matcher(matcher2).add_matcher(matcher3)
         # Assert
-        self.assertEqual(matcher1._next, matcher2)
-        self.assertEqual(matcher2._next, matcher3)
+        assert matcher1._next == matcher2
+        assert matcher2._next == matcher3
 
 
 @tags(["unit"])
@@ -83,7 +83,7 @@ class IStepMatcherFindTestCase(unittest.TestCase):
             )
             match.assert_called_once_with(predicate, augmented_predicate, step_methods)
         # Assert
-        self.assertEqual(method, sentinel.method)
+        assert method == sentinel.method
 
     def test_should_find_method_when_no_step_methods_given(self):
         """ Scenario: no step methods """
@@ -102,7 +102,7 @@ class IStepMatcherFindTestCase(unittest.TestCase):
                     predicate, augmented_predicate, sentinel.steps
                 )
         # Assert
-        self.assertEqual(method, sentinel.method)
+        assert method == sentinel.method
 
     def test_should_not_find_method(self):
         """ Scenario: not found """
@@ -120,7 +120,7 @@ class IStepMatcherFindTestCase(unittest.TestCase):
             )
             match.assert_called_once_with(predicate, augmented_predicate, step_methods)
         # Assert
-        self.assertEqual(method, None)
+        assert method is None
 
     def test_should_delegate_search(self):
         """ Scenario: delegate """
@@ -147,7 +147,7 @@ class IStepMatcherFindTestCase(unittest.TestCase):
                 find.assert_called_once_with(
                     predicate, augmented_predicate, step_methods
                 )
-                self.assertEqual(method, sentinel.method)
+                assert method == sentinel.method
 
 
 @tags(["unit"])
@@ -165,7 +165,7 @@ class IStepMatcherGetAllStepMethodsTestCase(unittest.TestCase):
         # Act
         result = obj._get_all_step_methods()
         # Assert
-        self.assertEqual(result, step_methods)
+        assert result == step_methods
 
 
 @tags(["unit"])
@@ -186,7 +186,7 @@ class MethodNameStepMatcherMatchTestCase(unittest.TestCase):
             predicate, augmented_predicate, methods.keys()
         )
         # Assert
-        self.assertEqual(result_method, sentinel.method)
+        assert result_method == sentinel.method
 
     def test_should_return_none_if_method_not_found(self):
         """ Scenario: no method """
@@ -202,7 +202,7 @@ class MethodNameStepMatcherMatchTestCase(unittest.TestCase):
             predicate, augmented_predicate, methods.keys()
         )
         # Assert
-        self.assertEqual(result_method, None)
+        assert result_method is None
 
     def test_should_return_none_if_method_name_too_short(self):
         """ Scenario: method too short """
@@ -218,7 +218,7 @@ class MethodNameStepMatcherMatchTestCase(unittest.TestCase):
             predicate, augmented_predicate, methods.keys()
         )
         # Assert
-        self.assertEqual(result_method, None)
+        assert result_method is None
 
 
 @tags(["unit"])
@@ -252,9 +252,9 @@ class MethodNameStepMatcherSuggestTestCase(unittest.TestCase):
                 "args": args,
                 "predicate": predicate.replace("'", r"\'"),
             }
-            self.assertEqual(suggest, expected)
-            self.assertEqual(suggest_method, method)
-            self.assertEqual(suggest_docstring, "")
+            assert suggest == expected
+            assert suggest_method == method
+            assert suggest_docstring == ""
 
 
 @tags(["unit"])
@@ -277,8 +277,8 @@ class DocStringStepMatcherMatchTestCase(unittest.TestCase):
             predicate, augmented_predicate, methods.keys()
         )
         # Assert
-        self.assertEqual(result_method, method)
-        self.assertEqual(result_args, ("boys", "the"))
+        assert result_method == method
+        assert result_args == ("boys", "the")
 
     def test_should_return_method_and_kwargs(self):
         """ Scenario: match by docstring with named groups """
@@ -298,8 +298,8 @@ class DocStringStepMatcherMatchTestCase(unittest.TestCase):
             predicate, augmented_predicate, methods.keys()
         )
         # Assert
-        self.assertEqual(result_method, method)
-        self.assertEqual(result_kwargs, {"who": "boys", "other": "the"})
+        assert result_method == method
+        assert result_kwargs == {"who": "boys", "other": "the"}
 
     def test_should_return_method_and_kwargs_with_mixed_groups(self):
         """ Scenario: match by docstring with named and not named groups """
@@ -317,9 +317,9 @@ class DocStringStepMatcherMatchTestCase(unittest.TestCase):
             predicate, augmented_predicate, methods.keys()
         )
         # Assert
-        self.assertEqual(result_method, method)
-        self.assertEqual(result_args, ())
-        self.assertEqual(result_kwargs, {"who": "boys"})
+        assert result_method == method
+        assert result_args == ()
+        assert result_kwargs == {"who": "boys"}
 
     def test_should_return_none_if_docstring_not_mached(self):
         """ Scenario: no match by docstring """
@@ -337,8 +337,8 @@ class DocStringStepMatcherMatchTestCase(unittest.TestCase):
             predicate, augmented_predicate, methods.keys()
         )
         # Assert
-        self.assertTrue(result_method is None)
-        self.assertEqual(result_args, ())
+        assert result_method is None
+        assert result_args == ()
 
     def test_should_return_none_if_no_docstring(self):
         """ Scenario: no match by docstring """
@@ -355,8 +355,8 @@ class DocStringStepMatcherMatchTestCase(unittest.TestCase):
             predicate, augmented_predicate, methods.keys()
         )
         # Assert
-        self.assertTrue(result_method is None)
-        self.assertEqual(result_args, ())
+        assert result_method is None
+        assert result_args == ()
 
     def test_should_return_second_method_and_matches(self):
         """ Scenario: many methods """
@@ -374,8 +374,8 @@ class DocStringStepMatcherMatchTestCase(unittest.TestCase):
             predicate, augmented_predicate, [method_name, "step_other"]
         )
         # Assert
-        self.assertEqual(result_method, method)
-        self.assertEqual(result_args, ("boys", "the"))
+        assert result_method == method
+        assert result_args == ("boys", "the")
 
     def test_should_match_with_utf8_string(self):
         """ Scenario: match with utf8 string """
@@ -393,7 +393,7 @@ class DocStringStepMatcherMatchTestCase(unittest.TestCase):
             predicate, augmented_predicate, methods.keys()
         )
         # Assert
-        self.assertEqual(result_method, method)
+        assert result_method == method
 
 
 @tags(["unit"])
@@ -444,146 +444,129 @@ class DocStringStepMatcherSuggestTestCase(unittest.TestCase):
                 "args": args,
                 "predicate": predicate.replace("'", r"\'"),
             }
-            self.assertEqual(suggest, expected)
-            self.assertEqual(suggest_method, method)
-            self.assertEqual(suggest_docstring, docstring)
+            assert suggest == expected
+            assert suggest_method == method
+            assert suggest_docstring == docstring
 
 
 @tags(["unit"])
 class ParseStepMatcherMatchTestCase(unittest.TestCase):
     """ Test :py:meth:`ParseStepMatcher.match`. """
 
-    def setUp(self):
-        super().setUp()
-        self.predicate = "my milkshake brings all the boys to the yard"
-        self.augmented_predicate = "my milkshake brings all the boys to the yard"
-        self.method_name = "step_{}".format(self.predicate)
-
     def test_should_return_method_and_args(self):
         """ Scenario: match by docstring """
+        # Arrange
+        predicate = "my milkshake brings all the boys to the yard"
+        augmented_predicate = "my milkshake brings all the boys to the yard"
+        method_name = "step_%s" % predicate
         docstring = r"my milkshake brings all the {} to {} yard"
         method = Mock(__doc__=docstring)
-        methods = {self.method_name: method}
-        matcher = self.__create_matcher(methods)
-        matched = matcher.match(
-            self.predicate, self.augmented_predicate, methods.keys()
+        methods = {method_name: method}
+        suite = Mock(**methods)
+        obj = ParseStepMatcher(suite)
+        # Act
+        result_method, result_args, result_kwargs = obj.match(
+            predicate, augmented_predicate, methods.keys()
         )
-        expected = (method, ("boys", "the"), {})
-        self.__assert_result_matches(expected, matched)
+        # Assert
+        assert result_method == method
+        assert result_args == ("boys", "the")
 
     def test_should_return_method_and_kwargs(self):
         """ Scenario: match by docstring with named groups """
+        # Arrange
+        predicate = "my milkshake brings all the boys to the yard"
+        augmented_predicate = "my milkshake brings all the boys to the yard"
+        method_name = "step_%s" % predicate
         docstring = r"my milkshake brings all the {who} to {other} yard"
         method = Mock(__doc__=docstring)
-        methods = {self.method_name: method}
-        matcher = self.__create_matcher(methods)
-        matched = matcher.match(
-            self.predicate, self.augmented_predicate, methods.keys()
+        methods = {method_name: method}
+        suite = Mock(**methods)
+        obj = ParseStepMatcher(suite)
+        # Act
+        result_method, result_args, result_kwargs = obj.match(
+            predicate, augmented_predicate, methods.keys()
         )
-        expected = (method, (), {"who": "boys", "other": "the"})
-        self.__assert_result_matches(expected, matched)
+        # Assert
+        assert result_method == method
+        assert result_kwargs == {"who": "boys", "other": "the"}
 
     def test_should_return_method_args_and_kwargs_with_mixed_groups(self):
         """ Scenario: match by docstring with named and not named groups """
+        # Arrange
+        predicate = "my milkshake brings all the boys to the yard"
+        augmented_predicate = "my milkshake brings all the boys to the yard"
+        method_name = "step_%s" % predicate
         docstring = r"my milkshake brings all the {who} to {} yard"
         method = Mock(__doc__=docstring)
-        methods = {self.method_name: method}
-        matcher = self.__create_matcher(methods)
-        matched = matcher.match(
-            self.predicate, self.augmented_predicate, methods.keys()
+        methods = {method_name: method}
+        suite = Mock(**methods)
+        obj = ParseStepMatcher(suite)
+        # Act
+        result_method, result_args, result_kwargs = obj.match(
+            predicate, augmented_predicate, methods.keys()
         )
-        expected = (method, ("the",), {"who": "boys"})
-        self.__assert_result_matches(expected, matched)
+        # Assert
+        assert result_method == method
+        assert result_args == ("the",)
+        assert result_kwargs == {"who": "boys"}
 
     def test_should_return_none_if_docstring_not_mached(self):
         """ Scenario: no match by docstring """
+        # Arrange
         predicate = "not there"
         augmented_predicate = "not there"
         method_name = "step_%s" % predicate
         docstring = r"my milkshake brings all the {who} to {} yard"
         method = Mock(__doc__=docstring)
         methods = {method_name: method}
-        matcher = self.__create_matcher(methods)
-        result_method, result_args, result_kwargs = matcher.match(
+        suite = Mock(**methods)
+        obj = ParseStepMatcher(suite)
+        # Act
+        result_method, result_args, result_kwargs = obj.match(
             predicate, augmented_predicate, methods.keys()
         )
-        self.assertTrue(result_method is None)
-        self.assertEqual(result_args, ())
+        # Assert
+        assert result_method is None
+        assert result_args == ()
 
     def test_should_return_none_if_no_docstring(self):
         """ Scenario: no match by docstring """
+        # Arrange
+        predicate = "my milkshake brings all the boys to the yard"
+        augmented_predicate = "my milkshake brings all the boys to the yard"
+        method_name = "step_%s" % predicate
         method = Mock(__doc__="")
-        methods = {self.method_name: method}
-        matcher = self.__create_matcher(methods)
-        result_method, result_args, result_kwargs = matcher.match(
-            self.predicate, self.augmented_predicate, methods.keys()
+        methods = {method_name: method}
+        suite = Mock(**methods)
+        obj = ParseStepMatcher(suite)
+        # Act
+        result_method, result_args, result_kwargs = obj.match(
+            predicate, augmented_predicate, methods.keys()
         )
-        self.assertTrue(result_method is None)
-        self.assertEqual(result_args, ())
+        # Assert
+        assert result_method is None
+        assert result_args == ()
 
     def test_should_return_second_method_and_matches(self):
         """ Scenario: many methods """
+        # Arrange
+        predicate = "my milkshake brings all the boys to the yard"
+        augmented_predicate = "my milkshake brings all the boys to the yard"
+        method_name = "step_%s" % predicate
         docstring = r"my milkshake brings all the {who} to {} yard"
         method = Mock(__doc__=docstring)
-        methods = {self.method_name: method, "step_other": sentinel.method}
-        matcher = self.__create_matcher(methods)
-        matched = matcher.match(
-            self.predicate, self.augmented_predicate, [self.method_name, "step_other"]
-        )
-        expected = (method, ("the",), {"who": "boys"})
-        self.__assert_result_matches(expected, matched)
-
-    def test_should_match_method_with_more_arguments(self):
-        one_arg_docstring = r"my milkshake brings all the {who}"
-        two_arg_docstring = r"my milkshake brings all the {who} to {} yard"
-
-        one_arg_method = Mock(__doc__=one_arg_docstring)
-        two_arg_method = Mock(__doc__=two_arg_docstring)
-        methods = {
-            "step_one_arg_method": one_arg_method,
-            "step_two_arg_method": two_arg_method,
-        }
-        matcher = self.__create_matcher(methods)
-        matched = matcher.match(
-            self.predicate,
-            self.augmented_predicate,
-            ["step_one_arg_method", "step_two_arg_method"],
-        )
-        expected = (two_arg_method, ("the",), {"who": "boys"})
-        self.__assert_result_matches(expected, matched)
-
-    def test_should_ignore_methods_with_not_full_match(self):
-        predicate = "my milkshake brings all the boys"
-        augmented_predicate = "my milkshake brings all the boys"
-        one_arg_docstring = r"my milkshake brings all the {who}"
-        two_arg_docstring = r"my milkshake brings all the {who} to {} yard"
-
-        one_arg_method = Mock(__doc__=one_arg_docstring)
-        two_arg_method = Mock(__doc__=two_arg_docstring)
-        methods = {
-            "step_one_arg_method": one_arg_method,
-            "step_two_arg_method": two_arg_method,
-        }
-        matcher = self.__create_matcher(methods)
-        matched = matcher.match(
-            predicate,
-            augmented_predicate,
-            ["step_one_arg_method", "step_two_arg_method"],
-        )
-        expected = (one_arg_method, (), {"who": "boys"})
-        self.__assert_result_matches(expected, matched)
-
-    def __assert_result_matches(self, expected, actual):
-        expected_method, expected_args, expected_kwargs = expected
-        actual_method, actual_args, actual_kwargs = actual
-        self.assertEqual(expected_method, actual_method)
-        self.assertEqual(expected_args, actual_args)
-        self.assertEqual(expected_kwargs, actual_kwargs)
-
-    def __create_matcher(self, methods):
+        methods = {method_name: method, "step_other": sentinel.method}
         suite = Mock(**methods)
-        matcher = ParseStepMatcher(suite)
-        return matcher
+        obj = ParseStepMatcher(suite)
+        # Act
+        result_method, result_args, result_kwargs = obj.match(
+            predicate, augmented_predicate, [method_name, "step_other"]
+        )
+        # Assert
+        assert result_method == method
+        assert result_args == ("the",)
+        assert result_kwargs == {"who": "boys"}
 
 
 @tags(["unit"])
@@ -628,6 +611,6 @@ class ParseStepMatcherSuggestTestCase(unittest.TestCase):
                 "args": args,
                 "predicate": predicate.replace("'", r"\'"),
             }
-            self.assertEqual(suggest, expected)
-            self.assertEqual(suggest_method, method)
-            self.assertEqual(suggest_docstring, docstring)
+            assert suggest == expected
+            assert suggest_method == method
+            assert suggest_docstring == docstring

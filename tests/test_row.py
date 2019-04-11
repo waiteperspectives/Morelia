@@ -71,8 +71,8 @@ class RowTest(TestCase):
         self.zones = []
         scenario.row_indices = [1, 0, 2]
         scenario.accept(visitor)
-        assert "hotel" == visitor._suite.got_party_zone
-        assert "jail" == visitor._suite.got_crunk
+        assert "hotel" == self.got_party_zone
+        assert "jail" == self.got_crunk
 
     def test_Rows_find_step_parents(self):
         self.assemble_scene_table()

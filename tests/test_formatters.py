@@ -39,7 +39,7 @@ class PlainTextFormatterOutputTestCase(unittest.TestCase):
         obj.output(node, line, status, duration)
         # Assert
         expected = "%-60s # pass  0.010s\n" % line
-        self.assertEqual(stream.getvalue(), expected)
+        assert stream.getvalue() == expected
 
     def test_should_output_for_fail(self):
         """ Scenariusz: format for fail """
@@ -54,7 +54,7 @@ class PlainTextFormatterOutputTestCase(unittest.TestCase):
         obj.output(node, line, status, duration)
         # Assert
         expected = "%-60s # fail  0.010s\n" % line
-        self.assertEqual(stream.getvalue(), expected)
+        assert stream.getvalue() == expected
 
     def test_should_output_for_error(self):
         """ Scenariusz: format for error """
@@ -69,7 +69,7 @@ class PlainTextFormatterOutputTestCase(unittest.TestCase):
         obj.output(node, line, status, duration)
         # Assert
         expected = "%-60s # error 0.010s\n" % line
-        self.assertEqual(stream.getvalue(), expected)
+        assert stream.getvalue() == expected
 
     def test_should_output_for_not_step(self):
         """ Scenariusz: format for not a step """
@@ -84,7 +84,7 @@ class PlainTextFormatterOutputTestCase(unittest.TestCase):
         obj.output(node, line, status, duration)
         # Assert
         expected = "%s\n" % line
-        self.assertEqual(stream.getvalue(), expected)
+        assert stream.getvalue() == expected
 
     def test_should_output_for_feature(self):
         """ Scenariusz: format for feature """
@@ -99,7 +99,7 @@ class PlainTextFormatterOutputTestCase(unittest.TestCase):
         obj.output(node, line, status, duration)
         # Assert
         expected = "\n%s\n" % line
-        self.assertEqual(stream.getvalue(), expected)
+        assert stream.getvalue() == expected
 
 
 @tags(["unit"])
@@ -121,7 +121,7 @@ class ColorTextFormatterOutputTestCase(unittest.TestCase):
         green = "\x1b[32m"
         reset = "\x1b[0m"
         expected = "{}{:<60} # 0.010s{}\n".format(green, line, reset)
-        self.assertEqual(stream.getvalue(), expected)
+        assert stream.getvalue() == expected
 
     def test_should_output_for_fail(self):
         """ Scenariusz: format for fail """
@@ -138,7 +138,7 @@ class ColorTextFormatterOutputTestCase(unittest.TestCase):
         red = "\x1b[31m"
         reset = "\x1b[0m"
         expected = "{}{:<60} # 0.010s{}\n".format(red, line, reset)
-        self.assertEqual(stream.getvalue(), expected)
+        assert stream.getvalue() == expected
 
     def test_should_output_for_error(self):
         """ Scenariusz: format for error """
@@ -155,7 +155,7 @@ class ColorTextFormatterOutputTestCase(unittest.TestCase):
         red = "\x1b[31m"
         reset = "\x1b[0m"
         expected = "{}{:<60} # 0.010s{}\n".format(red, line, reset)
-        self.assertEqual(stream.getvalue(), expected)
+        assert stream.getvalue() == expected
 
     def test_should_output_for_not_step(self):
         """ Scenariusz: format for not a step """
@@ -170,7 +170,7 @@ class ColorTextFormatterOutputTestCase(unittest.TestCase):
         obj.output(node, line, status, duration)
         # Assert
         expected = "%s\n" % line
-        self.assertEqual(stream.getvalue(), expected)
+        assert stream.getvalue() == expected
 
     def test_should_output_for_feature(self):
         """ Scenariusz: format for feature """
@@ -185,4 +185,4 @@ class ColorTextFormatterOutputTestCase(unittest.TestCase):
         obj.output(node, line, status, duration)
         # Assert
         expected = "\n%s\n" % line
-        self.assertEqual(stream.getvalue(), expected)
+        assert stream.getvalue() == expected

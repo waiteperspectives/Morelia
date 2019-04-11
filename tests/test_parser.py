@@ -16,7 +16,7 @@ class LabelParserParseTestCase(TestCase):
         # Act
         result = obj.parse(line)
         # Assert
-        self.assertFalse(result)
+        assert not result
 
     def test_should_return_true_if_line_with_labels(self):
         """ Scenario: line with labels """
@@ -26,7 +26,7 @@ class LabelParserParseTestCase(TestCase):
         # Act
         result = obj.parse(line)
         # Assert
-        self.assertTrue(result)
+        assert result
 
 
 @tags(["unit"])
@@ -40,7 +40,7 @@ class LabelParserPopLabelsTestCase(TestCase):
         # Act
         result = obj.pop_labels()
         # Assert
-        self.assertEqual(result, [])
+        assert result == []
 
     def test_should_return_labels(self):
         """ Scenario: pop labels """
@@ -50,8 +50,8 @@ class LabelParserPopLabelsTestCase(TestCase):
         # Act
         result = obj.pop_labels()
         # Assert
-        self.assertEqual(result, ["label1"])
-        self.assertEqual(obj._labels, [])
+        assert result == ["label1"]
+        assert obj._labels == []
 
     def test_should_not_return_labels_when_tag_inside_step(self):
         """ Scenario: no labels when tag inside step"""
@@ -61,8 +61,8 @@ class LabelParserPopLabelsTestCase(TestCase):
         # Act
         result = obj.pop_labels()
         # Assert
-        self.assertEqual(result, [])
-        self.assertEqual(obj._labels, [])
+        assert result == []
+        assert obj._labels == []
 
 
 @tags(["unit"])
@@ -83,8 +83,8 @@ class LanguageParserParseTestCase(TestCase):
             # Act
             result = obj.parse(line)
             # Assert
-            self.assertFalse(result)
-            self.assertEqual(obj.language, "en")
+            assert not result
+            assert obj.language == "en"
 
     def test_should_return_true_if_line_with_language_directive(self):
         """ Scenario: line with language directive """
@@ -94,8 +94,8 @@ class LanguageParserParseTestCase(TestCase):
         # Act
         result = obj.parse(line)
         # Assert
-        self.assertTrue(result)
-        self.assertEqual(obj.language, "pl")
+        assert result
+        assert obj.language == "pl"
 
     def test_should_set_default_language(self):
         """ Scenario: default language passed """
@@ -105,8 +105,8 @@ class LanguageParserParseTestCase(TestCase):
         # Act
         result = obj.parse(line)
         # Assert
-        self.assertFalse(result)
-        self.assertEqual(obj.language, "ja")
+        assert not result
+        assert obj.language == "ja"
 
 
 @tags(["unit"])
@@ -130,8 +130,8 @@ class LineProducerGetLineTestCase(TestCase):
         for i, line in enumerate(lines.split("\n")):
             result = obj.get_line()
             # Assert
-            self.assertEqual(result, line)
-            self.assertEqual(obj.line_number, i + 1)
+            assert result == line
+            assert obj.line_number == i + 1
 
 
 class DocStringParserParseTestCase(TestCase):
@@ -146,7 +146,7 @@ class DocStringParserParseTestCase(TestCase):
             # Act
             result = obj.parse(line)
             # Assert
-            self.assertFalse(result)
+            assert not result
 
     def test_should_return_true_if_docstring(self):
         """ Scenario: docstring """
@@ -158,8 +158,8 @@ class DocStringParserParseTestCase(TestCase):
         # Act
         result = obj.parse(line)
         # Assert
-        self.assertTrue(result)
-        self.assertEqual(obj.payload, "line1\nline2")
+        assert result
+        assert obj.payload == "line1\nline2"
 
     def test_should_return_true_if_indented_docstring(self):
         """ Scenario: indented docstring """
@@ -175,5 +175,5 @@ class DocStringParserParseTestCase(TestCase):
             # Act
             result = obj.parse(line)
             # Assert
-            self.assertTrue(result)
-            self.assertEqual(obj.payload, expected)
+            assert result
+            assert obj.payload == expected

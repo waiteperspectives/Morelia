@@ -23,7 +23,7 @@ class ShouldSkipTestCase(unittest.TestCase):
         ]
         for pattern, expected in test_data:
             result = should_skip(tags_list, pattern)
-            self.assertEqual(result, expected)
+            assert result == expected
 
 
 @tags(["unit"])
