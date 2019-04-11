@@ -10,7 +10,7 @@ features_dir = Path(__file__).parent / "features"
 
 @tags(["acceptance"])
 class LabelTest(TestCase):
-    def setUp(self):
+    def setUpScenario(self):
         self.__labels = []
 
     def test_labels(self):

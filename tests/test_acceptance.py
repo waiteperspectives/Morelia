@@ -5,11 +5,9 @@ from unittest import TestCase
 
 from morelia.decorators import tags
 from morelia.exceptions import MissingStepError
-from morelia.formatters import NullFormatter
 from morelia.grammar import And, Feature, Given, Then, When
 from morelia.matchers import MethodNameStepMatcher, RegexpStepMatcher
 from morelia.parser import Parser, execute_script
-from morelia.visitors import TestVisitor
 
 features_dir = Path(__file__).parent / "features"
 
@@ -39,33 +37,32 @@ class MoreliaSuite(TestCase):
     def test_handle_exceptions(self):
         source = "Given exceptional"
         s = Given(source=source, line_number=42)
-        matcher = RegexpStepMatcher(self).add_matcher(MethodNameStepMatcher(self))
-        visitor = TestVisitor(self, matcher, NullFormatter())
         try:
-            visitor.visit_step(s)
+            execute_script(s, self)
             assert False  # should raise!  # pragma: nocover
         except ZeroDivisionError as e:
-            assert "Given exceptional" in str(e)
+            assert "Given exceptional" in str(e.__cause__)
+            assert "division by zero" in str(e)
 
     def test_find_step_by_name(self):
         step = Given("Given my milkshake")
         matcher = self._get_default_machers()
         method, args, kwargs = step.find_method(matcher)
         expect = self.step_my_milkshake
-        self.assertEqual(expect, method)
+        assert expect == method
 
     def test_find_step_by_doc_string(self):
         step = And("And my milkshake brings all the boys to the yard")
         matcher = self._get_default_machers()
         method, args, kwargs = step.find_method(matcher)
         expect = self.step_my_milkshake
-        self.assertEqual(expect, method)
+        assert expect == method
 
     def test_find_step_with_match(self):
         step = When("When my milkshake brings all the girls to the yard")
         matcher = self._get_default_machers()
         method, args, kwargs = step.find_method(matcher)
-        self.assertEqual(("girls", "the"), args)
+        assert ("girls", "the") == args
 
     def test_step_not_found(self):
         step = Then("Then not there")
@@ -88,9 +85,7 @@ class MoreliaSuite(TestCase):
     def step_evaluate_step_by_doc_string(self):
         step = Given("Given my milkshake brings all the girls to a yard")
         self.youth = "boys"
-        matcher = self._get_default_machers()
-        visitor = TestVisitor(self, matcher, NullFormatter())
-        visitor.visit_step(step)
+        execute_script(step, self)
         self.assertEqual("girls", self.youth)  # Uh...
 
     def step_multiline_predicate(self):
@@ -101,9 +96,7 @@ class MoreliaSuite(TestCase):
     def test_step_multiline_predicate(self):
         feature = "When multiline predicate"
         steps = Parser().parse_feature(feature)
-        matcher = self._get_default_machers()
-        visitor = TestVisitor(self, matcher, NullFormatter())
-        visitor.visit_step(steps[0])
+        execute_script(steps[0], self)
 
     def test_record_filename(self):
         filename = features_dir / "morelia.feature"
@@ -137,7 +130,7 @@ class MoreliaSuite(TestCase):
         feature = Parser().parse_file(features_dir / "morelia.feature")
         execute_script(feature, self)
 
-    def setUp(self):
+    def setUpScenario(self):
         self.culture = []
 
     def step_adventure_of_love_love_and_culture_(self, culture):
@@ -212,7 +205,7 @@ class MoreliaSuite(TestCase):
             self.assert_regex_contains(re.escape(diagnostics), e)
 
     def step_errors(self):
-        raise SyntaxError("no, you!")
+        raise SyntaxError("Some syntax error")
 
     def assert_regex_contains(self, pattern, string, flags=None):
         flags = flags or 0

@@ -1,6 +1,8 @@
 import copy
 import itertools
 import re
+from abc import ABC, abstractmethod
+from typing import Iterable, Type
 
 from morelia.exceptions import MissingStepError
 from morelia.i18n import TRANSLATIONS
@@ -8,8 +10,38 @@ from morelia.i18n import TRANSLATIONS
 PLACEHOLDER_RE = re.compile(r"\<(\w+)\>")
 
 
-class Node:
-    allowed_parents = ()
+class Visitor(ABC):
+    @abstractmethod
+    def visit_feature(self, node: "Feature", children: Iterable["Node"]) -> None:
+        pass
+
+    @abstractmethod
+    def visit_scenario(self, node: "Scenario", children: Iterable["Node"]) -> None:
+        pass
+
+    @abstractmethod
+    def visit_step(self, node: "Step", children: Iterable["Node"]) -> None:
+        pass
+
+    @abstractmethod
+    def visit_background(self, node: "Background") -> None:
+        pass
+
+    @abstractmethod
+    def visit_row(self, node: "Row") -> None:
+        pass
+
+    @abstractmethod
+    def visit_examples(self, node: "Examples", children: Iterable["Node"]) -> None:
+        pass
+
+    @abstractmethod
+    def visit_comment(self, node: "Comment") -> None:
+        pass
+
+
+class Node(ABC):
+    allowed_parents = ()  # type: Iterable[Type[Node]]
 
     def __init__(
         self, source="", line_number=0, language="en", labels=None, predecessors=[]
@@ -89,14 +121,10 @@ class Node:
             labels.extend(self.parent.get_labels())
         return labels
 
-    def find_method(self, matcher):
-        pass
-
-    def __iter__(self):
-        for child in self.steps:
-            yield child
-            for descendant in child:
-                yield descendant
+    def get_all_steps(self):
+        return itertools.chain.from_iterable(
+            child.get_all_steps() for child in self.steps
+        )
 
     def add_child(self, child):
         self.steps.append(child)
@@ -136,9 +164,13 @@ class Node:
         )
         return '\n  File "%s", line %s, in %s\n %s\n%s' % args
 
+    @abstractmethod
+    def accept(self, visitor: Visitor) -> None:
+        pass
+
 
 class Feature(Node):
-    def accept(self, visitor):
+    def accept(self, visitor: Visitor) -> None:
         visitor.visit_feature(self, self.steps)
 
     def prepend_steps(self, scenario):
@@ -156,7 +188,7 @@ class Scenario(Node):
         super().__init__(*args, **kwargs)
         self.row_indices = [0]
 
-    def accept(self, visitor):
+    def accept(self, visitor: Visitor) -> None:
         self.parent.prepend_steps(self)
         self.enforce(
             0 < len(self.steps),
@@ -179,11 +211,14 @@ class Scenario(Node):
     def count_Row_dimensions(self):
         return [step.rows_number for step in self.steps]
 
+    def get_all_steps(self):
+        return (step for step in self.steps if isinstance(step, Step))
+
 
 class Background(Node):
     allowed_parents = (Feature,)
 
-    def accept(self, visitor):
+    def accept(self, visitor: Visitor) -> None:
         visitor.visit_background(self)
 
     def prepend_steps(self, scenario):
@@ -201,6 +236,9 @@ class Background(Node):
 
     def count_Row_dimensions(self):
         return [0]
+
+    def get_all_steps(self):
+        return (step for step in self.steps if isinstance(step, Step))
 
 
 class RowParent(Node):
@@ -220,7 +258,7 @@ class Step(RowParent):
         super().__init__(*args, **kwargs)
         self.payload = ""
 
-    def accept(self, visitor):
+    def accept(self, visitor: Visitor) -> None:
         visitor.visit_step(self, self.steps)
 
     def find_method(self, matcher):
@@ -311,7 +349,7 @@ class But(And):
 class Examples(RowParent):
     allowed_parents = (Scenario,)
 
-    def accept(self, visitor):
+    def accept(self, visitor: Visitor) -> None:
         visitor.visit_examples(self, self.steps)
 
 
@@ -334,7 +372,7 @@ class Row(Node):
     def values(self):
         return self.__values
 
-    def accept(self, visitor):
+    def accept(self, visitor: Visitor) -> None:
         visitor.visit_row(self)
 
     @classmethod
@@ -345,7 +383,7 @@ class Row(Node):
 class Comment(Node):
     allowed_parents = (Node,)
 
-    def accept(self, visitor):
+    def accept(self, visitor: Visitor) -> None:
         visitor.visit_comment(self)
 
     @classmethod

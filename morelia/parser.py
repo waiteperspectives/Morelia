@@ -12,6 +12,7 @@ from pathlib import Path
 import re
 import textwrap
 
+from morelia.breadcrumbs import Breadcrumbs
 from morelia.exceptions import MissingStepError
 from morelia.formatters import NullFormatter
 from morelia.grammar import (
@@ -33,7 +34,9 @@ from morelia.matchers import MethodNameStepMatcher, ParseStepMatcher, RegexpStep
 from morelia.visitors import TestVisitor
 
 
-def execute_script(script_root, suite, formatter=None, matchers=None, show_all_missing=True):
+def execute_script(
+    script_root, suite, formatter=None, matchers=None, show_all_missing=True
+):
     if formatter is None:
         formatter = NullFormatter()
     if matchers is None:
@@ -42,7 +45,21 @@ def execute_script(script_root, suite, formatter=None, matchers=None, show_all_m
     if show_all_missing:
         _find_and_report_missing(script_root, matcher)
     test_visitor = TestVisitor(suite, matcher, formatter)
-    script_root.accept(test_visitor)
+    breadcrumbs = Breadcrumbs()
+    test_visitor.register(breadcrumbs)
+    try:
+        script_root.accept(test_visitor)
+    except Exception as exc:
+        exc.__traceback__.tb_frame.f_locals
+        tb = exc.__traceback__.tb_next
+        while tb and not tb.tb_frame.f_locals.get("__tracebackhide__", False):
+            tb = tb.tb_next
+        if not tb:
+            del tb
+            raise
+        exc.__traceback__ = tb.tb_next
+        del tb
+        raise exc from AssertionError(breadcrumbs)
 
 
 def _create_matchers_chain(suite, matcher_classes):
@@ -58,9 +75,9 @@ def _create_matchers_chain(suite, matcher_classes):
 
 def _find_and_report_missing(feature, matcher):
     not_matched = set()
-    for descendant in feature:
+    for step in feature.get_all_steps():
         try:
-            descendant.find_method(matcher)
+            step.find_method(matcher)
         except MissingStepError as e:
             not_matched.add(e.suggest)
     suggest = "".join(not_matched)
