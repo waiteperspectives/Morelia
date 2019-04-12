@@ -1,10 +1,17 @@
 import gc
 import statistics
 import traceback
-import tracemalloc
-from unittest import TestCase
+from unittest import TestCase, skipUnless
 
 from morelia.parser import Parser, execute_script
+
+try:
+    import tracemalloc
+except ImportError:
+    HAS_TRACEMALLOC = False
+else:
+    HAS_TRACEMALLOC = True
+
 
 
 class TracebackHidingTest(TestCase):
@@ -23,6 +30,7 @@ class TracebackHidingTest(TestCase):
             # - one with step causing error
             assert len(tb) == 3
 
+    @skipUnless(HAS_TRACEMALLOC, "Needs tracemalloc")
     def test_does_not_leak_too_much(self):
         tracemalloc.start()
         gc.collect()
