@@ -193,6 +193,7 @@ class Parser:
                     line_number=line_number,
                     labels=labels,
                     predecessors=self.nodes,
+                    language=self.__language,
                 )
                 self.nodes.append(node)
                 return node

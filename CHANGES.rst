@@ -10,8 +10,12 @@ and this project adheres to `Semantic Versioning <http://semver.org/>`_.
 Version: Unreleased
 ===============================================================================
 
+FIXED
+-----
 
-Version: 0.8.1 (2019-04-11)
+  * incorrect matching methods with parse format (#106).
+
+Version: 0.8.1 (2019-04-11) [YANKED]
 ===============================================================================
 
 FIXED
