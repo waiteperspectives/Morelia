@@ -10,9 +10,13 @@ and this project adheres to `Semantic Versioning <http://semver.org/>`_.
 Version: Unreleased
 ===============================================================================
 
+Version: 0.8.2 (2019-04-12)
+===============================================================================
+
 FIXED
 -----
 
+  * incorrectly matching steps in languages other than english (#113)
   * incorrect matching methods with parse format (#106).
 
 Version: 0.8.1 (2019-04-11) [YANKED]
