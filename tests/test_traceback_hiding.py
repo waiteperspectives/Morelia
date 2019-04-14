@@ -13,7 +13,6 @@ else:
     HAS_TRACEMALLOC = True
 
 
-
 class TracebackHidingTest(TestCase):
     def setUp(self):
         script = "Feature: Sample\nScenario: Sample\nGiven exceptional"
