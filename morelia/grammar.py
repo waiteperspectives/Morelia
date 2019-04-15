@@ -177,7 +177,7 @@ class Scenario(Node):
         return _permute_indices(dims)
 
     def count_Row_dimensions(self):
-        return [step.rows_number for step in self.steps]
+        return [step.rows_number for step in self.steps if isinstance(step, RowParent)]
 
 
 class Background(Node):
