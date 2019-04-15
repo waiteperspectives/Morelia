@@ -10,7 +10,7 @@ from morelia.i18n import TRANSLATIONS
 PLACEHOLDER_RE = re.compile(r"\<(\w+)\>")
 
 
-class Visitor(ABC):
+class Visitor(ABC):  # pragma: nocover
     @abstractmethod
     def visit_feature(self, node: "Feature", children: Iterable["Node"]) -> None:
         pass
@@ -165,7 +165,7 @@ class Node(ABC):
         return '\n  File "%s", line %s, in %s\n %s\n%s' % args
 
     @abstractmethod
-    def accept(self, visitor: Visitor) -> None:
+    def accept(self, visitor: Visitor) -> None:  # pragma: nocover
         pass
 
 
