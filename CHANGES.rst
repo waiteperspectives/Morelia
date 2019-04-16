@@ -21,6 +21,14 @@ CHANGED
 
   * dropped support for setUp/tearDown executed before/after each scenario (#105)
 
+Version: 0.8.3 (2019-04-16)
+===============================================================================
+
+FIXED
+-----
+
+  * attribute error when comment on first line after scenario (#116)
+
 Version: 0.8.2 (2019-04-12)
 ===============================================================================
 
