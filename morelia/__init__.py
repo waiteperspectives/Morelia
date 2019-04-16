@@ -22,7 +22,7 @@ import sys
 from morelia.formatters import PlainTextFormatter, ColorTextFormatter
 from morelia.parser import Parser, execute_script  # noqa
 
-__version__ = "0.8.2"
+__version__ = "0.8.3"
 
 
 def has_color_support():
