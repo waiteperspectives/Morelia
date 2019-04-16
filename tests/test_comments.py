@@ -26,3 +26,9 @@ class CommentsTest(TestCase):
     def step_I_won_t_have_comment_in_interpolated_data_from_table(self, data):
         r"I won\'t have comment in interpolated (.+) from table"
         assert "#" not in data
+
+    def step_I_put_some_comment_after_scenario_declaration(self):
+        pass
+
+    def step_I_put_comment_after_examples_declaration(self):
+        pass
