@@ -1,149 +1,163 @@
 import inspect
-import sys
 import time
-import traceback
-from gettext import ngettext
+from abc import ABC
+from typing import Iterable, List
 
 from morelia.exceptions import MissingStepError
+from morelia.grammar import Feature, Node, Scenario, Step, Visitor
 
 
-def noop():
-    pass
+class VisitorObserver(ABC):
+    def feature_started(self, node: Feature) -> None:
+        self.node_started(node)
+
+    def feature_finished(self, node: Feature) -> None:
+        self.node_finished(node)
+
+    def scenario_started(self, node: Scenario) -> None:
+        self.node_started(node)
+
+    def scenario_finished(self, node: Scenario) -> None:
+        self.node_finished(node)
+
+    def step_started(self, node: Step) -> None:
+        self.node_started(node)
+
+    def step_finished(self, node: Step) -> None:
+        self.node_finished(node)
+
+    def node_started(self, node: Node) -> None:
+        pass
+
+    def node_finished(self, node: Node) -> None:
+        pass
 
 
-class TestVisitor:
+class ObservableVisitor:
+    def __init__(self):
+        self.__observers = []  # type: List[VisitorObserver]
+
+    def register(self, observer: VisitorObserver) -> None:
+        self.__observers.append(observer)
+
+    def feature_started(self, node: Feature) -> None:
+        for observer in self.__observers:
+            observer.feature_started(node)
+
+    def feature_finished(self, node: Feature) -> None:
+        for observer in self.__observers:
+            observer.feature_finished(node)
+
+    def scenario_started(self, node: Scenario) -> None:
+        for observer in self.__observers:
+            observer.scenario_started(node)
+
+    def scenario_finished(self, node: Scenario) -> None:
+        for observer in self.__observers:
+            observer.scenario_finished(node)
+
+    def step_started(self, node: Step) -> None:
+        for observer in self.__observers:
+            observer.step_started(node)
+
+    def step_finished(self, node: Step) -> None:
+        for observer in self.__observers:
+            observer.step_finished(node)
+
+    def node_started(self, node: Node) -> None:
+        for observer in self.__observers:
+            observer.node_started(node)
+
+    def node_finished(self, node: Node) -> None:
+        for observer in self.__observers:
+            observer.node_finished(node)
+
+
+class TestVisitor(ObservableVisitor, Visitor):
     """Visits all steps and run step methods."""
 
     def __init__(self, suite, matcher, formatter):
-        self._setUp = suite.setUp
-        self._tearDown = suite.tearDown
-        self._suite = suite
-        self._suite.setUp = self._suite.tearDown = noop
-        self._matcher = matcher
-        self._formatter = formatter
-        self._exceptions = []
-        self._scenarios_failed = 0
-        self._scenarios_passed = 0
-        self._scenarios_num = 0
-        self._scenario_exception = None
-        self._steps_num = 0
+        super().__init__()
+        self.__prepare_setup_and_teardown(suite)
+        self.__matcher = matcher
+        self.__formatter = formatter
 
-    def visit_feature(self, node, children=[]):
+    def __prepare_setup_and_teardown(self, suite):
+        self.setUpFeature = getattr(suite, "setUpFeature", self.noop)
+        self.tearDownFeature = getattr(suite, "tearDownFeature", self.noop)
+        self.setUpScenario = getattr(suite, "setUpScenario", self.noop)
+        self.tearDownScenario = getattr(suite, "tearDownScenario", self.noop)
+        self.setUpStep = getattr(suite, "setUpStep", self.noop)
+        self.tearDownStep = getattr(suite, "tearDownStep", self.noop)
+
+    def noop(self):
+        pass
+
+    def visit_feature(self, node: Feature, children: Iterable[Node] = []) -> None:
+        self.setUpFeature()
         try:
-            self._feature_visit(node)
+            self.feature_started(node)
+            line = node.interpolated_source()
+            self.__formatter.output(node, line, "", 0)
             self.__visit_children(children)
         finally:
-            self._feature_after_visit(node)
+            self.tearDownFeature()
+            self.feature_finished(node)
 
-    def _feature_visit(self, node):
-        self._exceptions = []
-        self._scenarios_failed = 0
-        self._scenarios_passed = 0
-        self._scenarios_num = 0
-        line = node.interpolated_source()
-        self._formatter.output(node, line, "", 0)
-
-    def _feature_after_visit(self, node):
-        if self._scenarios_failed:
-            self._fail_feature()
-
-    def _fail_feature(self):
-        failed_msg = ngettext(
-            "{} scenario failed", "{} scenarios failed", self._scenarios_failed
-        )
-        passed_msg = ngettext(
-            "{} scenario passed", "{} scenarios passed", self._scenarios_passed
-        )
-        msg = "{}, {}".format(failed_msg, passed_msg).format(
-            self._scenarios_failed, self._scenarios_passed
-        )
-        prefix = "-" * 66
-        for step_line, tb, exc in self._exceptions:
-            msg += "\n{}{}\n{}{}".format(prefix, step_line, tb, exc).replace(
-                "\n", "\n    "
-            )
-        assert self._scenarios_failed == 0, msg
-
-    def visit_scenario(self, node, children=[]):
+    def visit_scenario(self, node: Scenario, children: Iterable[Node] = []) -> None:
+        self.setUpScenario()
         try:
-            self._scenario_visit(node)
+            self.scenario_started(node)
+            line = node.interpolated_source()
+            self.__formatter.output(node, line, "", 0)
             self.__visit_children(children)
         finally:
-            self._scenario_after_visit(node)
+            self.tearDownScenario()
+            self.scenario_finished(node)
 
-    def visit_step(self, node, children=[]):
-        self._step_visit(node)
-        self.__visit_children(children)
-
-    def visit(self, node, children=[]):
+    def visit_step(self, node: Step, children: Iterable[Node] = []) -> None:
+        self.step_started(node)
         line = node.interpolated_source()
-        self._formatter.output(node, line, "", 0)
-        self.__visit_children(children)
-
-    visit_background = visit_row = visit_examples = visit_comment = visit
-
-    def __visit_children(self, children):
-        for child in children:
-            child.accept(self)
-
-    def _scenario_visit(self, node):
-        self._scenario_exception = None
-        if self._scenarios_num != 0:
-            self._setUp()
-        self._scenarios_num += 1
-        line = node.interpolated_source()
-        self._formatter.output(node, line, "", 0)
-
-    def _scenario_after_visit(self, node):
-        if self._scenario_exception:
-            self._exceptions.append(self._scenario_exception)
-            self._scenarios_failed += 1
-        else:
-            self._scenarios_passed += 1
-        self._tearDown()
-
-    def _step_visit(self, node):
-        if self._scenario_exception:
-            return
-        self._suite.step = node
-        self._steps_num += 1
-        reconstruction = node.interpolated_source()
         start_time = time.time()
         status = "pass"
+        self.setUpStep()
         try:
-            self.run_step(node)
+            self.__execute_step(node)
+            self.__visit_children(children)
         except (MissingStepError, AssertionError):
             status = "fail"
-            etype, evalue, etraceback = sys.exc_info()
-            tb = traceback.extract_tb(etraceback)[:-2]
-            self._scenario_exception = (
-                node.parent.interpolated_source() + reconstruction,
-                "".join(traceback.format_list(tb)),
-                "".join(traceback.format_exception_only(etype, evalue)),
-            )
-        except (SystemExit, Exception) as exc:
+            raise
+        except (SystemExit, Exception):
             status = "error"
-            self._format_exception(node, exc)
             raise
         finally:
-            end_time = time.time()
-            duration = end_time - start_time
-            self._formatter.output(node, reconstruction, status, duration)
+            self.tearDownStep()
+            self.step_finished(node)
+            duration = time.time() - start_time
+            self.__formatter.output(node, line, status, duration)
 
-    def _format_exception(self, node, exc):
-        if len(exc.args):
-            message = node.format_fault(exc.args[0])
-            exc.args = (message,) + exc.args[1:]
-
-    def run_step(self, node):
-        method, args, kwargs = node.find_method(self._matcher)
-        spec = None
-        arglist = []
+    def __execute_step(self, node: Step) -> None:
+        __tracebackhide__ = True
+        method, args, kwargs = node.find_method(self.__matcher)
         spec = inspect.getfullargspec(method)
         arglist = spec.args + spec.kwonlyargs
-
         if "_labels" in arglist:
             kwargs["_labels"] = node.get_labels()
         if "_text" in arglist:
             kwargs["_text"] = node.payload
         method(*args, **kwargs)
+
+    def visit(self, node: Node, children: Iterable[Node] = []) -> None:
+        try:
+            self.node_started(node)
+            line = node.interpolated_source()
+            self.__formatter.output(node, line, "", 0)
+            self.__visit_children(children)
+        finally:
+            self.node_finished(node)
+
+    visit_background = visit_row = visit_examples = visit_comment = visit
+
+    def __visit_children(self, children: Iterable[Node]) -> None:
+        for child in children:
+            child.accept(self)

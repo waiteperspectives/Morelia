@@ -8,6 +8,9 @@ from morelia.parser import Parser
 
 @tags(["acceptance"])
 class FeatureTest(TestCase):
+    def setUp(self):
+        self.executed = []
+
     def test_feature(self):
         source = "Feature: prevent wild animals from eating us"
         steps = Parser().parse_feature(source)
@@ -34,9 +37,8 @@ class FeatureTest(TestCase):
         ):
             Parser().parse_feature(source)
 
-    def test_feature_with_long_comment(
-        self
-    ):  # ERGO how to detect shadowed test cases??
+    def test_feature_with_long_comment(self):
+        # ERGO how to detect shadowed test cases??
         source = """Feature: The Sacred Giant Mosquito of the Andes
                    #  at http://www.onagocag.com/nazbird.jpg
                         so pay no attention to the skeptics!"""

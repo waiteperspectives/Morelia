@@ -31,7 +31,6 @@ class MissingStepErrorTestCase(TestCase):
 
 @tags(["unit"])
 class StepFindStepTestCase(TestCase):
-
     def test_should_find_method(self):
         """ Scenario: method found """
         # Arrange

@@ -10,6 +10,17 @@ and this project adheres to `Semantic Versioning <http://semver.org/>`_.
 Version: Unreleased
 ===============================================================================
 
+ADDED
+-----
+
+  * setUpFeature/tearDownFeature, setUpScenario/tearDownScenario, setUpStep/tearDownStep (#105)
+  * hiding irrelevant morelia's code from tracebacks (#111)
+
+CHANGED
+-------
+
+  * dropped support for setUp/tearDown executed before/after each scenario (#105)
+
 Version: 0.8.3 (2019-04-16)
 ===============================================================================
 
