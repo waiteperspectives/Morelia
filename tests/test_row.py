@@ -2,7 +2,6 @@
 from unittest import TestCase
 
 from morelia.decorators import tags
-from morelia.formatters import NullFormatter
 from morelia.grammar import Row, _permute_indices
 from morelia.matchers import MethodNameStepMatcher, RegexpStepMatcher
 from morelia.parser import Parser, execute_script
@@ -66,7 +65,7 @@ class RowTest(TestCase):
         self.assemble_scene_table("Step flesh is weak\n")
         scenario = self.table_scene.steps[0]
         matcher = RegexpStepMatcher(self).add_matcher(MethodNameStepMatcher(self))
-        visitor = TestVisitor(self, matcher, NullFormatter())
+        visitor = TestVisitor(self, matcher)
         self.crunks = []
         self.zones = []
         scenario.row_indices = [1, 0, 2]

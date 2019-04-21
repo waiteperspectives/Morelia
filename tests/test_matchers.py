@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*-
 
 import unittest
-from unittest.mock import Mock, sentinel, patch, MagicMock
+from unittest.mock import MagicMock, Mock, patch, sentinel
 
 from morelia.decorators import tags
 from morelia.matchers import (
-    MethodNameStepMatcher,
     IStepMatcher,
-    RegexpStepMatcher,
+    MethodNameStepMatcher,
     ParseStepMatcher,
+    RegexpStepMatcher,
 )
 
 

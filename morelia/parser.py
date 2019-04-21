@@ -8,13 +8,13 @@
 #                                 ,_       __|      ,
 #                        |  |_|  /  |  |  /  |  |  / \_
 #                         \/  |_/   |_/|_/\_/|_/|_/ \/
-from pathlib import Path
 import re
 import textwrap
+from pathlib import Path
 
 from morelia.breadcrumbs import Breadcrumbs
 from morelia.exceptions import MissingStepError
-from morelia.formatters import NullFormatter
+from morelia.formatters import Writer
 from morelia.grammar import (
     And,
     Background,
@@ -37,16 +37,17 @@ from morelia.visitors import TestVisitor
 def execute_script(
     script_root, suite, formatter=None, matchers=None, show_all_missing=True
 ):
-    if formatter is None:
-        formatter = NullFormatter()
     if matchers is None:
         matchers = [RegexpStepMatcher, ParseStepMatcher, MethodNameStepMatcher]
     matcher = _create_matchers_chain(suite, matchers)
     if show_all_missing:
         _find_and_report_missing(script_root, matcher)
-    test_visitor = TestVisitor(suite, matcher, formatter)
+    test_visitor = TestVisitor(suite, matcher)
     breadcrumbs = Breadcrumbs()
     test_visitor.register(breadcrumbs)
+    if formatter is not None:
+        writer = Writer(formatter)
+        test_visitor.register(writer)
     try:
         script_root.accept(test_visitor)
     except Exception as exc:

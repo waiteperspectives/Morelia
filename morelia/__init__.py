@@ -19,7 +19,7 @@ Then running is as simple as:
 
 import sys
 
-from morelia.formatters import PlainTextFormatter, ColorTextFormatter
+from morelia.formatters import ColorTextFormatter, PlainTextFormatter
 from morelia.parser import Parser, execute_script  # noqa
 
 __version__ = "0.8.3"

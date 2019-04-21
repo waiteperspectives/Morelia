@@ -1,9 +1,9 @@
 import unittest
+from configparser import NoOptionError, NoSectionError, SafeConfigParser
 from unittest.mock import Mock, patch
 
 from morelia.config import Config, get_config
 from morelia.decorators import tags
-from configparser import NoSectionError, NoOptionError, SafeConfigParser
 
 
 @tags(["unit"])

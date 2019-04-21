@@ -1,10 +1,10 @@
-from io import StringIO
 import unittest
-from unittest.mock import sentinel, Mock
+from io import StringIO
+from unittest.mock import Mock, sentinel
 
 from morelia.decorators import tags
-from morelia.grammar import Step, Scenario, Feature
-from morelia.formatters import NullFormatter, PlainTextFormatter, ColorTextFormatter
+from morelia.formatters import ColorTextFormatter, NullFormatter, PlainTextFormatter
+from morelia.grammar import Feature, Scenario, Step
 
 
 @tags(["unit"])

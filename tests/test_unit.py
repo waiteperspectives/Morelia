@@ -2,12 +2,11 @@
 # -*- coding: utf-8 -*-
 
 from unittest import TestCase
-
-from unittest.mock import sentinel, Mock
+from unittest.mock import Mock, sentinel
 
 from morelia.decorators import tags
-from morelia.grammar import Step
 from morelia.exceptions import MissingStepError
+from morelia.grammar import Step
 
 
 @tags(["unit"])
