@@ -58,11 +58,11 @@ def run(
     kwargs["show_all_missing"] = show_all_missing
     parser = Parser()
     feature = (
-        parser.parse_file(filename, scenario=scenario)
+        parser.parse_file(filename)
         if as_str is None
-        else parser.parse_as_str(filename, as_str, scenario=scenario)
+        else parser.parse_as_str(filename, as_str)
     )
-    return execute_script(feature, suite, **kwargs)
+    return execute_script(feature, suite, scenario=scenario, **kwargs)
 
 
 __all__ = ("Parser", "run")

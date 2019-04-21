@@ -89,10 +89,11 @@ class ObservableVisitor:
 class TestVisitor(ObservableVisitor, Visitor):
     """Visits all steps and run step methods."""
 
-    def __init__(self, suite, matcher):
+    def __init__(self, suite, matcher, scenario_re):
         super().__init__()
         self.__prepare_setup_and_teardown(suite)
         self.__matcher = matcher
+        self.__scenario_re = scenario_re
 
     def __prepare_setup_and_teardown(self, suite):
         self.setUpFeature = getattr(suite, "setUpFeature", self.noop)
@@ -115,6 +116,8 @@ class TestVisitor(ObservableVisitor, Visitor):
             self.feature_finished(node)
 
     def visit_scenario(self, node: Scenario, children: Iterable[Node] = []) -> None:
+        if not self.__scenario_re.match(node.predicate):
+            return
         self.setUpScenario()
         try:
             self.scenario_started(node)

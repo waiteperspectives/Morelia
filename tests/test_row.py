@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import re
 from unittest import TestCase
 
 from morelia.decorators import tags
@@ -65,7 +66,7 @@ class RowTest(TestCase):
         self.assemble_scene_table("Step flesh is weak\n")
         scenario = self.table_scene.steps[0]
         matcher = RegexpStepMatcher(self).add_matcher(MethodNameStepMatcher(self))
-        visitor = TestVisitor(self, matcher)
+        visitor = TestVisitor(self, matcher, re.compile(".*"))
         self.crunks = []
         self.zones = []
         scenario.row_indices = [1, 0, 2]

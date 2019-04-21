@@ -1,3 +1,4 @@
+import re
 import unittest
 from unittest.mock import Mock, sentinel
 
@@ -13,7 +14,7 @@ class TestVisitorVisitTestCase(unittest.TestCase):
     def test_should_catch_SystemExit(self):
         node = Mock(Step)
         suite = Mock(name="suite")
-        visitor = TestVisitor(suite, sentinel.matcher)
+        visitor = TestVisitor(suite, sentinel.matcher, re.compile(".*"))
         node.find_method.side_effect = [SystemExit]
         with self.assertRaises(SystemExit):
             visitor.visit_step(node)
