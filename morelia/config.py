@@ -5,6 +5,11 @@ Configuration
 
 import os
 from configparser import NoOptionError, NoSectionError, SafeConfigParser
+from pathlib import Path
+
+import toml
+
+from morelia.matchers import MethodNameStepMatcher, ParseStepMatcher, RegexpStepMatcher
 
 DEFAULT_CONFIG_FILES = [".moreliarc", "~/.moreliarc", "/etc/morelia.rc"]
 
@@ -84,3 +89,29 @@ def get_config(_memo={}):
         config.load()
         _memo["config"] = config
     return _memo["config"]
+
+
+MATCHERS = {
+    "parse": ParseStepMatcher,
+    "regex": RegexpStepMatcher,
+    "method": MethodNameStepMatcher,
+}
+
+
+class TOMLConfig:
+    def __init__(self, section="default"):
+        self.__section = section
+        paths = (Path("pyproject.toml"), Path("~/.config/morelia/morelia.toml"))
+        paths = [path for path in paths if path.exists()]
+        self.__data = {"wip": False, "matchers": ["regex", "parse", "method"]}
+        data = toml.load(paths).get("tool", {}).get("morelia", {}).get(section, {})
+        self.__data.update(data)
+
+    def get_matchers(self):
+        return [MATCHERS[matcher] for matcher in self.__data["matchers"]]
+
+    def get_writers(self):
+        return []
+
+    def __getitem__(self, key):
+        return self.__data[key]

@@ -21,17 +21,18 @@ If you look in example from :ref:`usage-guide`:
 
     # test_acceptance.py
 
+    from pathlib import Path
     import unittest
 
-    from morelia import run
+    from morelia import verify
 
 
     class CalculatorTestCase(unittest.TestCase):
 
         def test_addition(self):
             ''' Addition feature '''
-            filename = os.path.join(os.path.dirname(__file__), 'calculator.feature')
-            run(filename, self, verbose=True)
+            filename = Path(__file__) / "calculator.feature"
+            verify(filename, self)
 
         def step_I_have_powered_calculator_on(self):
             r'I have powered calculator on'

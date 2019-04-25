@@ -12,11 +12,11 @@ allowed by law. You can copy, modify, distribute and perform the work, even for
 commercial purposes, all without asking permission.
 """
 
-import os
+from pathlib import Path
 import unittest
 
 from calculator import Calculator
-from morelia import run
+from morelia import verify
 
 
 class CalculatorTestCase(unittest.TestCase):
@@ -24,6 +24,11 @@ class CalculatorTestCase(unittest.TestCase):
 
     def setUp(self):
         self.calculator = Calculator()
+
+    def test_addition(self):
+        """Addition feature."""
+        filename = Path(__file__).parent / "calculator.feature"
+        verify(filename, self)
 
     def step_I_have_powered_calculator_on(self):
         r"I have powered calculator on"
@@ -39,11 +44,6 @@ class CalculatorTestCase(unittest.TestCase):
     def step_the_result_should_be_on_the_screen(self, number):
         r'the result should be "{number}" on the screen'  # match by format-like string
         self.assertEqual(int(number), self.calculator.get_result())
-
-    def test_addition(self):
-        """Addition feature."""
-        filename = os.path.join(os.path.dirname(__file__), "calculator.feature")
-        run(filename, self, verbose=True)
 
 
 if __name__ == "__main__":  # pragma: nobranch

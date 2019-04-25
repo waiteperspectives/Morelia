@@ -10,9 +10,9 @@
 #                         \/  |_/   |_/|_/\_/|_/|_/ \/
 import re
 import textwrap
-from pathlib import Path
 
 from morelia.breadcrumbs import Breadcrumbs
+from morelia.config import TOMLConfig
 from morelia.exceptions import InvalidScenarioMatchingPattern, MissingStepError
 from morelia.formatters import Writer
 from morelia.grammar import (
@@ -30,17 +30,17 @@ from morelia.grammar import (
     When,
 )
 from morelia.i18n import TRANSLATIONS
-from morelia.matchers import MethodNameStepMatcher, ParseStepMatcher, RegexpStepMatcher
 from morelia.visitors import TestVisitor
 
 
 def execute_script(
     script_root,
     suite,
+    scenario=".*",
     formatter=None,
     matchers=None,
     show_all_missing=True,
-    scenario=r".*",
+    config=None,
 ):
     try:
         scenario_re = re.compile(scenario)
@@ -48,17 +48,16 @@ def execute_script(
         raise InvalidScenarioMatchingPattern(
             'Invalid scenario matching regex "{}": {}'.format(scenario, e)
         )
-    if matchers is None:
-        matchers = [RegexpStepMatcher, ParseStepMatcher, MethodNameStepMatcher]
-    matcher = _create_matchers_chain(suite, matchers)
-    if show_all_missing:
-        _find_and_report_missing(script_root, matcher, scenario_re)
-    test_visitor = TestVisitor(suite, matcher, scenario_re)
+    if config is None:
+        config = TOMLConfig("default")
+    matchers = __prepare_matchers(config, matchers, suite)
+    wip = config["wip"]
+    if not wip and show_all_missing:
+        _find_and_report_missing(script_root, matchers, scenario_re)
+    test_visitor = TestVisitor(suite, matchers, scenario_re)
     breadcrumbs = Breadcrumbs()
     test_visitor.register(breadcrumbs)
-    if formatter is not None:
-        writer = Writer(formatter)
-        test_visitor.register(writer)
+    __prepare_writers(config, formatter, test_visitor)
     try:
         script_root.accept(test_visitor)
     except Exception as exc:
@@ -72,6 +71,21 @@ def execute_script(
         exc.__traceback__ = tb.tb_next
         del tb
         raise exc from AssertionError(breadcrumbs)
+
+
+def __prepare_matchers(config, matchers, suite):
+    if matchers is None:
+        matchers = config.get_matchers()
+    matcher = _create_matchers_chain(suite, matchers)
+    return matcher
+
+
+def __prepare_writers(config, formatter, test_visitor):
+    writers = config.get_writers()
+    if formatter is not None:
+        writers.append(Writer(formatter))
+    for writer in writers:
+        test_visitor.register(writer)
 
 
 def _create_matchers_chain(suite, matcher_classes):
@@ -124,18 +138,10 @@ class Parser:
         self.__language = language
         self.__continuation_marker_re = re.compile(r"\\\s*$")
 
-    def parse_as_str(self, filename, prose):
-        feature = self.parse_features(prose)
-        feature.filename = filename
-        return feature
-
-    def parse_file(self, filename):
-        prose = Path(filename).read_text()
-        return self.parse_as_str(filename=filename, prose=prose)
-
     def parse_features(self, prose):
-        self.parse_feature(prose)
+        self.parse_feature(str(prose))
         feature = self.nodes[0]
+        feature.filename = getattr(prose, "filename", "<stdin>")
         assert isinstance(feature, Feature), "Exactly one Feature per file"
         feature.enforce(
             any(isinstance(step, Scenario) for step in feature.steps),

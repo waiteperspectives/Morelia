@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from unittest import TestCase
 
+from morelia import verify
 from morelia.decorators import tags
 from morelia.grammar import Feature, Scenario
 from morelia.parser import Parser
@@ -8,9 +9,6 @@ from morelia.parser import Parser
 
 @tags(["acceptance"])
 class FeatureTest(TestCase):
-    def setUp(self):
-        self.executed = []
-
     def test_feature(self):
         source = "Feature: prevent wild animals from eating us"
         steps = Parser().parse_feature(source)
@@ -35,7 +33,7 @@ class FeatureTest(TestCase):
         with self.assertRaisesRegex(
             SyntaxError, "feature files must start with a Feature"
         ):
-            Parser().parse_feature(source)
+            verify(source, self)
 
     def test_feature_with_long_comment(self):
         # ERGO how to detect shadowed test cases??
@@ -43,4 +41,4 @@ class FeatureTest(TestCase):
                    #  at http://www.onagocag.com/nazbird.jpg
                         so pay no attention to the skeptics!"""
         with self.assertRaisesRegex(SyntaxError, "linefeed in comment"):
-            Parser().parse_feature(source)
+            verify(source, self)

@@ -30,14 +30,14 @@ Create standard python's :py:mod:`unittest` and hook Morelia into it:
 
     import unittest
 
-    from morelia import run
+    from morelia import verify
 
 
     class CalculatorTestCase(unittest.TestCase):
     
         def test_addition(self):
             """ Addition feature """
-            run('calculator.feature', self, verbose=True)
+            verify('calculator.feature', self)
 
 Run test with your favourite runner: unittest, nose, py.test, trial. You name it!
 
@@ -60,8 +60,8 @@ And you'll see which steps are missing:
     ----------------------------------------------------------------------
     Traceback (most recent call last):
       File "test_acceptance.py", line 45, in test_addition
-        run('calculator.feature', self, verbose=True)
-      File "(..)/morelia/__init__.py", line 22, in run
+        verify('calculator.feature', self)
+      File "(..)/morelia/__init__.py", line 22, in verify
         return ast.evaluate(suite, **kwargs)
       File "(..)/morelia/grammar.py", line 31, in evaluate
         feature.evaluate_steps(matcher_visitor)

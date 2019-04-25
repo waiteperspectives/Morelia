@@ -95,14 +95,14 @@ Create standard Python's `unittest` and hook Morelia into it:
 
     import unittest
 
-    from morelia import run
+    from morelia import verify
 
 
     class CalculatorTestCase(unittest.TestCase):
     
         def test_addition(self):
             """ Addition feature """
-            run('calculator.feature', self, verbose=True)
+            verify('calculator.feature', self)
 
 Run test with your favourite runner: unittest, nose, py.test, trial. You name it!
 
@@ -169,14 +169,14 @@ Now implement steps with standard `TestCases` that you are familiar:
 
     import unittest
 
-    from morelia import run
+    from morelia import verify
     
 
     class CalculatorTestCase(unittest.TestCase):
     
         def test_addition(self):
             """ Addition feature """
-            run('calculator.feature', self, verbose=True)
+            verify('calculator.feature', self, verbose=True)
     
         def step_I_have_powered_calculator_on(self):
             r'I have powered calculator on'

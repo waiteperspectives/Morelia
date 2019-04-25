@@ -1,7 +1,7 @@
 from pathlib import Path
 from unittest import TestCase
 
-from morelia import run
+from morelia import run, verify
 from morelia.decorators import tags
 from morelia.exceptions import InvalidScenarioMatchingPattern
 from morelia.grammar import Scenario
@@ -57,16 +57,23 @@ class RegexSpecifiedScenariosTest(TestCase):
         self.executed = []
         self.filename = features_dir / "scenario_matching.feature"
 
-    def test_should_only_run_matching_scenarios(self):
-        self._matching_pattern = r"Scenario Matches [12]"
-        run(self.filename, self, scenario=self._matching_pattern)
+    def test_should_only_run_matching_scenarios_deprecated(self):
+        matching_pattern = r"Scenario Matches [12]"
+        run(self.filename, self, scenario=matching_pattern)
         assert ["first", "fourth"] == self.executed
 
-    def test_fail_informatively_on_bad_scenario_regex(self):
-        self._matching_pattern = "\\"
+    def test_should_only_run_matching_scenarios(self):
+        matching_pattern = r"Scenario Matches [12]"
+        verify(self.filename, self, scenario=matching_pattern)
+        assert ["first", "fourth"] == self.executed
 
+    def test_fail_informatively_on_bad_scenario_regex_deprecated(self):
         with self.assertRaises(InvalidScenarioMatchingPattern):
-            run(self.filename, self, scenario=self._matching_pattern)
+            run(self.filename, self, scenario="\\")
+
+    def test_fail_informatively_on_bad_scenario_regex(self):
+        with self.assertRaises(InvalidScenarioMatchingPattern):
+            verify(self.filename, self, scenario="\\")
 
     def step_nth_scenario_is_executed(self, nth):
         r'"{nth}" scenario is executed'

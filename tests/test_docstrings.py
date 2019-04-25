@@ -1,18 +1,18 @@
 # -*- coding: utf-8 -*-
-import os
+from pathlib import Path
 from unittest import TestCase
 
-from morelia import run
+from morelia import verify
 from morelia.decorators import tags
 
-pwd = os.path.dirname(os.path.realpath(__file__))
+features_dir = Path(__file__).parent / "features"
 
 
 @tags(["acceptance"])
 class DocStringTest(TestCase):
     def test_docstrings(self):
-        filename = os.path.join(pwd, "features/docstrings.feature")
-        run(filename, self)
+        filename = features_dir / "docstrings.feature"
+        verify(filename, self)
 
     def step_I_put_docstring_after_step_definition(self, _text=None):
         assert _text is not None

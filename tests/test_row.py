@@ -2,10 +2,11 @@
 import re
 from unittest import TestCase
 
+from morelia import verify
 from morelia.decorators import tags
 from morelia.grammar import Row, _permute_indices
 from morelia.matchers import MethodNameStepMatcher, RegexpStepMatcher
-from morelia.parser import Parser, execute_script
+from morelia.parser import Parser
 from morelia.visitors import TestVisitor
 
 
@@ -95,8 +96,7 @@ class RowTest(TestCase):
         self.elements = []
         self.factions = []
         scene = self.assemble_short_scene_table()
-        feature = Parser().parse_features(scene)
-        execute_script(feature, self)
+        verify(scene, self)
         assert [["Pangolin", "Glyptodon"], ["Pangea", "Laurasia"]] == [
             self.factions,
             self.elements,
@@ -118,8 +118,7 @@ class RowTest(TestCase):
         scene = self.assemble_scene_table_source(
             "Step my milkshake brings all the boys to the yard\n"
         )
-        feature = Parser().parse_features(scene)
-        execute_script(feature, self)
+        verify(scene, self)
         assert ["work", "mall", "jail", "work", "mall", "jail"] == self.crunks
         assert ["beach", "beach", "beach", "hotel", "hotel", "hotel"] == self.zones
 
