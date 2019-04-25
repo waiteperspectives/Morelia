@@ -281,9 +281,9 @@ Matchers Classes
 ----------------
 """
 
-from abc import ABCMeta, abstractmethod
 import re
 import unicodedata
+from abc import ABCMeta, abstractmethod
 
 import parse
 

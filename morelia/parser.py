@@ -8,13 +8,13 @@
 #                                 ,_       __|      ,
 #                        |  |_|  /  |  |  /  |  |  / \_
 #                         \/  |_/   |_/|_/\_/|_/|_/ \/
-from pathlib import Path
 import re
 import textwrap
+from pathlib import Path
 
 from morelia.breadcrumbs import Breadcrumbs
-from morelia.exceptions import MissingStepError
-from morelia.formatters import NullFormatter
+from morelia.exceptions import InvalidScenarioMatchingPattern, MissingStepError
+from morelia.formatters import Writer
 from morelia.grammar import (
     And,
     Background,
@@ -35,18 +35,30 @@ from morelia.visitors import TestVisitor
 
 
 def execute_script(
-    script_root, suite, formatter=None, matchers=None, show_all_missing=True
+    script_root,
+    suite,
+    formatter=None,
+    matchers=None,
+    show_all_missing=True,
+    scenario=r".*",
 ):
-    if formatter is None:
-        formatter = NullFormatter()
+    try:
+        scenario_re = re.compile(scenario)
+    except re.error as e:
+        raise InvalidScenarioMatchingPattern(
+            'Invalid scenario matching regex "{}": {}'.format(scenario, e)
+        )
     if matchers is None:
         matchers = [RegexpStepMatcher, ParseStepMatcher, MethodNameStepMatcher]
     matcher = _create_matchers_chain(suite, matchers)
     if show_all_missing:
-        _find_and_report_missing(script_root, matcher)
-    test_visitor = TestVisitor(suite, matcher, formatter)
+        _find_and_report_missing(script_root, matcher, scenario_re)
+    test_visitor = TestVisitor(suite, matcher, scenario_re)
     breadcrumbs = Breadcrumbs()
     test_visitor.register(breadcrumbs)
+    if formatter is not None:
+        writer = Writer(formatter)
+        test_visitor.register(writer)
     try:
         script_root.accept(test_visitor)
     except Exception as exc:
@@ -73,13 +85,17 @@ def _create_matchers_chain(suite, matcher_classes):
     return root_matcher
 
 
-def _find_and_report_missing(feature, matcher):
+def _find_and_report_missing(feature, matcher, scenario_re):
     not_matched = set()
     for step in feature.get_all_steps():
         try:
             step.find_method(matcher)
         except MissingStepError as e:
-            not_matched.add(e.suggest)
+            parent = step.parent
+            if not isinstance(parent, Scenario) or scenario_re.match(
+                step.parent.predicate
+            ):
+                not_matched.add(e.suggest)
     suggest = "".join(not_matched)
     if suggest:
         diagnostic = "Cannot match steps:\n\n{}".format(suggest)
@@ -108,46 +124,17 @@ class Parser:
         self.__language = language
         self.__continuation_marker_re = re.compile(r"\\\s*$")
 
-    def parse_as_str(self, filename, prose, scenario=None):
-        feature = self.parse_features(prose, scenario=scenario)
+    def parse_as_str(self, filename, prose):
+        feature = self.parse_features(prose)
         feature.filename = filename
         return feature
 
-    def parse_file(self, filename, scenario=r".*"):
-        with Path(filename).open("rb") as input_file:
-            return self.parse_as_str(
-                filename=filename,
-                prose=input_file.read().decode("utf-8"),
-                scenario=scenario,
-            )
+    def parse_file(self, filename):
+        prose = Path(filename).read_text()
+        return self.parse_as_str(filename=filename, prose=prose)
 
-    def parse_features(self, prose, scenario=r".*"):
+    def parse_features(self, prose):
         self.parse_feature(prose)
-
-        # Filter steps to only include requested scenarios
-        try:
-            scenario_re = re.compile(scenario)
-        except Exception as e:
-            raise SyntaxError(
-                'Invalid scenario matching regex "{}": {}'.format(scenario, e)
-            )
-
-        matched_feature_steps = []
-        matched_steps = []
-        matching = True
-        for s in self.nodes:
-            if isinstance(s, Background):
-                matched_feature_steps.append(s)
-                matching = True
-            elif isinstance(s, Scenario):
-                matching = scenario_re.match(s.predicate) is not None
-                if matching is True:
-                    matched_feature_steps.append(s)
-            if matching is True:
-                matched_steps.append(s)
-        self.nodes = matched_steps
-        self.nodes[0].steps = matched_feature_steps
-
         feature = self.nodes[0]
         assert isinstance(feature, Feature), "Exactly one Feature per file"
         feature.enforce(

@@ -33,9 +33,8 @@ Scenario: Add two numbers - table
 
 import unittest
 
-from morelia import run
-
 from calculator import Calculator
+from morelia import run
 
 
 class CalculatorDocstringTestCase(unittest.TestCase):

@@ -4,9 +4,7 @@ Configuration
 """
 
 import os
-
-from configparser import SafeConfigParser, NoSectionError, NoOptionError
-
+from configparser import NoOptionError, NoSectionError, SafeConfigParser
 
 DEFAULT_CONFIG_FILES = [".moreliarc", "~/.moreliarc", "/etc/morelia.rc"]
 

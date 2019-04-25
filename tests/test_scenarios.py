@@ -1,8 +1,9 @@
-import re
 from pathlib import Path
 from unittest import TestCase
 
+from morelia import run
 from morelia.decorators import tags
+from morelia.exceptions import InvalidScenarioMatchingPattern
 from morelia.grammar import Scenario
 from morelia.parser import Parser
 
@@ -52,19 +53,25 @@ class ScenarioTest(TestCase):
 
 @tags(["acceptance"])
 class RegexSpecifiedScenariosTest(TestCase):
+    def setUp(self):
+        self.executed = []
+        self.filename = features_dir / "scenario_matching.feature"
+
     def test_should_only_run_matching_scenarios(self):
-        filename = features_dir / "scenario_matching.feature"
         self._matching_pattern = r"Scenario Matches [12]"
-        self.feature = Parser().parse_file(filename, scenario=self._matching_pattern)
-        scenario_matcher_re = re.compile(self._matching_pattern)
-        for included_scenario in self.feature.steps:
-            assert scenario_matcher_re.match(included_scenario.predicate) is not None
+        run(self.filename, self, scenario=self._matching_pattern)
+        assert ["first", "fourth"] == self.executed
 
     def test_fail_informatively_on_bad_scenario_regex(self):
-        filename = features_dir / "scenario_matching.feature"
         self._matching_pattern = "\\"
 
-        with self.assertRaises(SyntaxError):
-            self.feature = Parser().parse_file(
-                filename, scenario=self._matching_pattern
-            )
+        with self.assertRaises(InvalidScenarioMatchingPattern):
+            run(self.filename, self, scenario=self._matching_pattern)
+
+    def step_nth_scenario_is_executed(self, nth):
+        r'"{nth}" scenario is executed'
+        self.executed.append(nth)
+
+    def step_nth_scenario_is_not_executed(self, nth):
+        r'"{nth}" scenario is not executed'
+        self.executed.append(nth)

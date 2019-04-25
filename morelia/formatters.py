@@ -157,10 +157,12 @@ Formatter Classes
 
 """
 
-from abc import ABCMeta, abstractmethod
 import sys
+import time
+from abc import ABCMeta, abstractmethod
 
-from morelia.grammar import Step, Feature
+from morelia.grammar import Feature, Step
+from morelia.visitors import VisitorObserver
 
 colors = {
     "normal": "\x1b[30m",
@@ -235,3 +237,25 @@ class ColorTextFormatter(PlainTextFormatter):
             text = "%s\n" % line.strip("\n")
         self._stream.write(text)
         self._stream.flush()
+
+
+class Writer(VisitorObserver):
+    def __init__(self, formatter):
+        self.__formatter = formatter
+
+    def step_started(self, node):
+        self.status = "pass"
+        self.start_time = time.time()
+
+    def step_failed(self, node):
+        self.status = "fail"
+
+    def step_errored(self, node):
+        self.status = "error"
+
+    def step_finished(self, node):
+        duration = time.time() - self.start_time
+        self.__formatter.output(node, node.interpolated_source(), self.status, duration)
+
+    def node_started(self, node):
+        self.__formatter.output(node, node.interpolated_source(), "", 0)

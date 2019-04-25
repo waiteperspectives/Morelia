@@ -15,9 +15,8 @@ commercial purposes, all without asking permission.
 import os
 import unittest
 
-from morelia import run
-
 from calculator import Calculator
+from morelia import run
 
 
 class CalculatorTestCase(unittest.TestCase):

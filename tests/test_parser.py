@@ -1,7 +1,7 @@
 from unittest import TestCase
 
 from morelia.decorators import tags
-from morelia.parser import LabelParser, LanguageParser, LineSource, DocStringParser
+from morelia.parser import DocStringParser, LabelParser, LanguageParser, LineSource
 
 
 @tags(["unit"])

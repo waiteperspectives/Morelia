@@ -1,5 +1,4 @@
 import inspect
-import time
 from abc import ABC
 from typing import Iterable, List
 
@@ -25,6 +24,12 @@ class VisitorObserver(ABC):
 
     def step_finished(self, node: Step) -> None:
         self.node_finished(node)
+
+    def step_failed(self, node: Step) -> None:
+        pass
+
+    def step_errored(self, node: Step) -> None:
+        pass
 
     def node_started(self, node: Node) -> None:
         pass
@@ -60,6 +65,14 @@ class ObservableVisitor:
         for observer in self.__observers:
             observer.step_started(node)
 
+    def step_failed(self, node: Step) -> None:
+        for observer in self.__observers:
+            observer.step_failed(node)
+
+    def step_errored(self, node: Step) -> None:
+        for observer in self.__observers:
+            observer.step_errored(node)
+
     def step_finished(self, node: Step) -> None:
         for observer in self.__observers:
             observer.step_finished(node)
@@ -76,11 +89,11 @@ class ObservableVisitor:
 class TestVisitor(ObservableVisitor, Visitor):
     """Visits all steps and run step methods."""
 
-    def __init__(self, suite, matcher, formatter):
+    def __init__(self, suite, matcher, scenario_re):
         super().__init__()
         self.__prepare_setup_and_teardown(suite)
         self.__matcher = matcher
-        self.__formatter = formatter
+        self.__scenario_re = scenario_re
 
     def __prepare_setup_and_teardown(self, suite):
         self.setUpFeature = getattr(suite, "setUpFeature", self.noop)
@@ -97,19 +110,17 @@ class TestVisitor(ObservableVisitor, Visitor):
         self.setUpFeature()
         try:
             self.feature_started(node)
-            line = node.interpolated_source()
-            self.__formatter.output(node, line, "", 0)
             self.__visit_children(children)
         finally:
             self.tearDownFeature()
             self.feature_finished(node)
 
     def visit_scenario(self, node: Scenario, children: Iterable[Node] = []) -> None:
+        if not self.__scenario_re.match(node.predicate):
+            return
         self.setUpScenario()
         try:
             self.scenario_started(node)
-            line = node.interpolated_source()
-            self.__formatter.output(node, line, "", 0)
             self.__visit_children(children)
         finally:
             self.tearDownScenario()
@@ -117,24 +128,19 @@ class TestVisitor(ObservableVisitor, Visitor):
 
     def visit_step(self, node: Step, children: Iterable[Node] = []) -> None:
         self.step_started(node)
-        line = node.interpolated_source()
-        start_time = time.time()
-        status = "pass"
         self.setUpStep()
         try:
             self.__execute_step(node)
             self.__visit_children(children)
         except (MissingStepError, AssertionError):
-            status = "fail"
+            self.step_failed(node)
             raise
         except (SystemExit, Exception):
-            status = "error"
+            self.step_errored(node)
             raise
         finally:
             self.tearDownStep()
             self.step_finished(node)
-            duration = time.time() - start_time
-            self.__formatter.output(node, line, status, duration)
 
     def __execute_step(self, node: Step) -> None:
         __tracebackhide__ = True
@@ -150,8 +156,6 @@ class TestVisitor(ObservableVisitor, Visitor):
     def visit(self, node: Node, children: Iterable[Node] = []) -> None:
         try:
             self.node_started(node)
-            line = node.interpolated_source()
-            self.__formatter.output(node, line, "", 0)
             self.__visit_children(children)
         finally:
             self.node_finished(node)
