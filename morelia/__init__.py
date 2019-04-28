@@ -100,7 +100,6 @@ def verify(script, suite, scenario: str = ".*", config: str = "default") -> None
         >>> from morelia import verify, File, Text, Url
         >>> verify(File('calculator.feature'), test_case_with_steps)
         >>> verify(Url('http://example.com/calculator.feature'), test_case_with_steps)
-        >>> from morelia import verify
         >>> verify(
         ...    Text(\"""
         ...    Feature: Addition
