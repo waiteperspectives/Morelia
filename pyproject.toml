@@ -30,51 +30,6 @@ sphinx-rtd-theme = "^0.4.3"
 pytest-black = { version = "^0.3.3", python = "^3.6" }
 black = { version = "^18.9b0", python = "^3.6" }
 
-[tool.morelia.default] 
-wip=false 
-matchers=["parse", "regex", "method"] 
-[[tool.morelia.default.output]]
-format="terminal"
-color=false
-[[tool.morelia.default.output]]
-format="html"
-file="output/{feature}.html"
-[[tool.morelia.default.output]]
-format="json"
-dest="file://output/{feature}.json"
-# dest="http://example.com"
-[[tool.morelia.default.output]]
-format="text"
-file="output/{feature}.txt"
-strategy="append"
-[[tool.morelia.default.output]]
-format="text"
-file="output/{feature}/{scenario}.txt"
-strategy="override"
-[[tool.morelia.default.output]]
-format="text"
-file="output/result.txt"
-strategy="append"
-[[tool.morelia.default.output]]
-format="rst"
-file="output/{feature}.rst"
-[[tool.morelia.default.output]]
-format="markdown"
-file="output/{feature}.md"
-[[tool.morelia.default.output]]
-format="xml"
-file="output/{feature}.xml"
-[[tool.morelia.default.output]]
-format="json"
-url="http://example.com"
-
-[tool.morelia.custom1] 
-wip=true 
-matchers=["parse"] 
-[[tool.morelia.custom1.output]]
-format="terminal"
-color=true
 [build-system]
 requires = ["poetry>=0.12"]
 build-backend = "poetry.masonry.api"
-

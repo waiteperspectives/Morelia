@@ -53,10 +53,9 @@ def execute_script(
     matchers = __prepare_matchers(config, matchers, suite)
     wip = config["wip"]
     if not wip and show_all_missing:
-        all_found, suggest = _find_and_report_missing(
-            script_root, matchers, scenario_re
-        )
-        assert all_found, "Cannot match steps:\n\n{}".format(suggest)
+        not_found = _find_missing_steps(script_root, matchers, scenario_re)
+        message = "Cannot match steps:\n\n{}".format("".join(not_found))
+        assert not_found == set(), message
     test_visitor = TestVisitor(suite, matchers, scenario_re)
     breadcrumbs = Breadcrumbs()
     test_visitor.register(breadcrumbs)
@@ -83,14 +82,6 @@ def __prepare_matchers(config, matchers, suite):
     return matcher
 
 
-def __prepare_writers(config, formatter, test_visitor):
-    writers = config.get_writers()
-    if formatter is not None:
-        writers.append(Writer(formatter))
-    for writer in writers:
-        test_visitor.register(writer)
-
-
 def _create_matchers_chain(suite, matcher_classes):
     root_matcher = None
     for matcher_class in matcher_classes:
@@ -100,11 +91,6 @@ def _create_matchers_chain(suite, matcher_classes):
         except AttributeError:
             root_matcher = matcher
     return root_matcher
-
-
-def _find_and_report_missing(feature, matcher, scenario_re):
-    not_found = _find_missing_steps(feature, matcher, scenario_re)
-    return not_found == set(), "".join(not_found)
 
 
 def _find_missing_steps(feature, matcher, scenario_re):
@@ -119,6 +105,14 @@ def _find_missing_steps(feature, matcher, scenario_re):
             ):
                 not_matched[e.suggest] = True
     return not_matched.keys()
+
+
+def __prepare_writers(config, formatter, test_visitor):
+    writers = config.get_writers()
+    if formatter is not None:
+        writers.append(Writer(formatter))
+    for writer in writers:
+        test_visitor.register(writer)
 
 
 class Parser:
