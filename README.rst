@@ -129,7 +129,7 @@ And you'll see which steps are missing:
       File "(..)/morelia/__init__.py", line 120, in verify
         execute_script(feature, suite, scenario=scenario, config=conf)
       File "(..)/morelia/parser.py", line 59, in execute_script
-        assert all_found, "Cannot match steps:\n\n{}".format(suggest)
+        assert not_found == set(), message
     AssertionError: Cannot match steps:
 
         def step_I_have_powered_calculator_on(self):
@@ -177,7 +177,7 @@ Now implement steps with standard `TestCases` that you are familiar:
     
         def test_addition(self):
             """ Addition feature """
-            verify('calculator.feature', self, verbose=True)
+            verify('calculator.feature', self)
     
         def step_I_have_powered_calculator_on(self):
             r'I have powered calculator on'
