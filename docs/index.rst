@@ -15,7 +15,7 @@ Test scenarios written in natural language make BDD foundation. They are compreh
 for non-technical participants who wrote them yet unambiguous for developers and QA.
 
 Morelia makes it easy for developers to integrate BDD into their existing unittest frameworks.
-It is easy to run under nose, pytest, tox or integrate with django, flask or any other python framework
+It is easy to run under pytest, nose, tox or integrate with django, flask or any other python framework
 because no special code have to be written.
 
 You as developer are in charge of how tests are organized. No need to fit into
@@ -26,7 +26,7 @@ rigid rules forced by some other BDD frameworks.
 .. image:: http://www.naturfoto.cz/fotografie/ostatni/krajta-zelena-47784.jpg
 
 
-If you're scenario writer (product owner/product manager/proffesional tester)
+If you're scenario writer (product owner/product manager/professional tester)
 we recommended reading the:
 
 * :ref:`writers-tutorial` and then

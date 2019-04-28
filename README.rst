@@ -108,11 +108,11 @@ Run test with your favourite runner: unittest, nose, py.test, trial. You name it
 
 .. code-block:: console
 
-   $ python -m unittest -v test_acceptance  # or
-   $ nosetests -v test_acceptance.py  # or
-   $ py.test -v test_acceptance.py  # or
-   $ trial test_acceptance.py  # or
-   $ # django/pyramid/flask/(place for your favourite test runner)
+    $ python -m unittest -v test_acceptance  # or
+    $ pytest test_acceptance.py  # or
+    $ nosetests -v test_acceptance.py  # or
+    $ trial test_acceptance.py  # or
+    $ # django/pyramid/flask/(place for your favourite test runner)
 
 And you'll see which steps are missing:
 
@@ -121,21 +121,15 @@ And you'll see which steps are missing:
     F
     ======================================================================
     FAIL: test_addition (test_acceptance.CalculatorTestCase)
-    Addition feature
+    Addition feature.
     ----------------------------------------------------------------------
     Traceback (most recent call last):
-      File "test_acceptance.py", line 45, in test_addition
-        run('calculator.feature', self, verbose=True)
-      File "(..)/morelia/__init__.py", line 22, in run
-        return ast.evaluate(suite, **kwargs)
-      File "(..)/morelia/grammar.py", line 31, in evaluate
-        feature.evaluate_steps(matcher_visitor)
-      File "(..)/morelia/grammar.py", line 76, in evaluate_steps
-        self._method_hook(visitor, class_name, 'after_')
-      File "(..)/morelia/grammar.py", line 85, in _method_hook
-        method(self)
-      File "(..)/morelia/visitors.py", line 125, in after_feature
-        self._suite.fail(diagnostic)
+      File "(..)test_acceptance.py", line 31, in test_addition
+        verify(filename, self)
+      File "(..)/morelia/__init__.py", line 120, in verify
+        execute_script(feature, suite, scenario=scenario, config=conf)
+      File "(..)/morelia/parser.py", line 59, in execute_script
+        assert all_found, "Cannot match steps:\n\n{}".format(suggest)
     AssertionError: Cannot match steps:
 
         def step_I_have_powered_calculator_on(self):
@@ -146,7 +140,12 @@ And you'll see which steps are missing:
         def step_I_enter_number_into_the_calculator(self, number):
             r'I enter "([^"]+)" into the calculator'
 
-            raise NotImplementedError('I enter "20" into the calculator')
+            raise NotImplementedError('I enter "50" into the calculator')
+
+        def step_I_enter_number_into_the_calculator(self, number):
+            r'I enter "([^"]+)" into the calculator'
+
+            raise NotImplementedError('I enter "70" into the calculator')
 
         def step_I_press_add(self):
             r'I press add'
@@ -156,10 +155,12 @@ And you'll see which steps are missing:
         def step_the_result_should_be_number_on_the_screen(self, number):
             r'the result should be "([^"]+)" on the screen'
 
-            raise NotImplementedError('the result should be "140" on the screen')
+            raise NotImplementedError('the result should be "120" on the screen')
 
     ----------------------------------------------------------------------
-    Ran 1 test in 0.029s
+    Ran 1 test in 0.013s
+
+    FAILED (failures=1)
 
 Now implement steps with standard `TestCases` that you are familiar:
 

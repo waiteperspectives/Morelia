@@ -81,4 +81,4 @@ class RegexSpecifiedScenariosTest(TestCase):
 
     def step_nth_scenario_is_not_executed(self, nth):
         r'"{nth}" scenario is not executed'
-        self.executed.append(nth)
+        assert False, "Should not be executed"  # pragma: nocover

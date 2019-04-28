@@ -2,7 +2,7 @@ from pathlib import Path
 from unittest import TestCase
 from unittest.mock import patch
 
-from morelia import File, Url, verify
+from morelia import File, Text, Url, verify
 
 feature_dir = Path(__file__).parent / "features"
 fixtures_dir = Path(__file__).parent / "fixtures"
@@ -22,29 +22,41 @@ class VerifyTest(TestCase):
     def step_sample_feature_in_string_exists(self):
         self.text = self.sample_feature.read_text()
 
-    def step_morelia_verifies_feature_from_given_string(self):
-        verify(self.text, self.sample_test)
-
     def step_sample_feature_in_file_exists(self):
         self.file_path = self.sample_feature
-
-    def step_morelia_verifies_feature_from_given_file(self):
-        verify(File(self.file_path), self.sample_test)
-
-    def step_morelia_verifies_feature_from_given_file_passed_as_string(self):
-        verify(self.file_path, self.sample_test)
 
     def step_sample_feature_at_url_exists(self):
         self.requests.get.return_value.text = self.sample_feature.read_text()
         self.url = "http://example.com/sample.feature"
 
-    def step_morelia_verifies_feature_from_given_url(self):
-        verify(Url(self.url), self.sample_test)
+    def step_verify_is_called_with_feature_script(self):
+        verify(self.text, self.sample_test)
 
-    def step_morelia_verifies_feature_from_given_url_passed_as_string(self):
+    def step_morelia_will_execute_it(self):
+        assert True
+
+    def step_verify_is_called_with_single_line_string_ending_in_feature(self):
+        verify(self.file_path, self.sample_test)
+
+    def step_verify_is_called_with_single_line_string_staring_with_http_or_https(self):
         verify(self.url, self.sample_test)
 
-    def step_no_error_is_raised(self):
+    def step_verify_is_called_with_Text_source_object(self):
+        verify(Text(self.text), self.sample_test)
+
+    def step_verify_is_called_with_File_source_object(self):
+        verify(File(self.file_path), self.sample_test)
+
+    def step_verify_is_called_with_Url_source_object(self):
+        verify(Url(self.url), self.sample_test)
+
+    def step_morelia_will_interpret_it_as_file_path_and_execute_it(self):
+        assert True
+
+    def step_morelia_will_interpret_it_as_feature_script_and_execute_it(self):
+        assert True
+
+    def step_morelia_will_interpret_it_as_url_and_execute_it(self):
         assert True
 
 

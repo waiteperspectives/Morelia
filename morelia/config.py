@@ -101,10 +101,13 @@ MATCHERS = {
 class TOMLConfig:
     def __init__(self, section="default"):
         self.__section = section
-        paths = (Path("pyproject.toml"), Path("~/.config/morelia/morelia.toml"))
+        paths = (Path("pyproject.toml"), Path("~/.config/morelia/config.toml"))
         paths = [path for path in paths if path.exists()]
         self.__data = {"wip": False, "matchers": ["regex", "parse", "method"]}
-        data = toml.load(paths).get("tool", {}).get("morelia", {}).get(section, {})
+        if paths:
+            data = toml.load(paths).get("tool", {}).get("morelia", {}).get(section, {})
+        else:
+            data = {}
         self.__data.update(data)
 
     def get_matchers(self):

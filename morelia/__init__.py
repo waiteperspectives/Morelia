@@ -117,11 +117,13 @@ def verify(script, suite, scenario: str = ".*", config: str = "default") -> None
     conf = TOMLConfig(config)
     script = _coerce_type(script)
     feature = Parser().parse_features(script)
-    execute_script(feature, suite, scenario=scenario, config=conf)
+    execute_script(
+        feature, suite, scenario=scenario, config=conf, formatter=PlainTextFormatter()
+    )
 
 
 def _coerce_type(script):
-    if isinstance(script, (File, Url)):
+    if isinstance(script, Source):
         return script
     script = str(script)
     if "\n" in script:
@@ -134,12 +136,17 @@ def _coerce_type(script):
         return Text(script)
 
 
-class Text:
+class Source:
+    pass
+
+
+class Text(Source):
     """Marks string as a text source.
 
     :param str text: text source
     :param str name: optional name show in tracebacks
     """
+
     def __init__(self, text, name="<stdin>"):
         self.filename = name
         self.__text = text
@@ -148,8 +155,9 @@ class Text:
         return self.__text
 
 
-class File:
+class File(Source):
     """Marks string as a file path."""
+
     def __init__(self, path):
         self.__path = Path(path)
         self.filename = str(path)
@@ -162,8 +170,9 @@ class File:
             return self.__text
 
 
-class Url:
+class Url(Source):
     """Marks string as an url endpoint."""
+
     def __init__(self, url):
         self.__url = url
         self.filename = url

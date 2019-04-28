@@ -53,7 +53,10 @@ def execute_script(
     matchers = __prepare_matchers(config, matchers, suite)
     wip = config["wip"]
     if not wip and show_all_missing:
-        _find_and_report_missing(script_root, matchers, scenario_re)
+        all_found, suggest = _find_and_report_missing(
+            script_root, matchers, scenario_re
+        )
+        assert all_found, "Cannot match steps:\n\n{}".format(suggest)
     test_visitor = TestVisitor(suite, matchers, scenario_re)
     breadcrumbs = Breadcrumbs()
     test_visitor.register(breadcrumbs)
@@ -100,7 +103,12 @@ def _create_matchers_chain(suite, matcher_classes):
 
 
 def _find_and_report_missing(feature, matcher, scenario_re):
-    not_matched = set()
+    not_found = _find_missing_steps(feature, matcher, scenario_re)
+    return not_found == set(), "".join(not_found)
+
+
+def _find_missing_steps(feature, matcher, scenario_re):
+    not_matched = {}  # "ordered dict/set" since 3.6 ;)
     for step in feature.get_all_steps():
         try:
             step.find_method(matcher)
@@ -109,11 +117,8 @@ def _find_and_report_missing(feature, matcher, scenario_re):
             if not isinstance(parent, Scenario) or scenario_re.match(
                 step.parent.predicate
             ):
-                not_matched.add(e.suggest)
-    suggest = "".join(not_matched)
-    if suggest:
-        diagnostic = "Cannot match steps:\n\n{}".format(suggest)
-        assert False, diagnostic
+                not_matched[e.suggest] = True
+    return not_matched.keys()
 
 
 class Parser:

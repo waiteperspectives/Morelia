@@ -21,21 +21,21 @@ Sometimes you need selectively run tests. For that reason you can tag your tests
         def test_addition(self):
             ''' Addition feature '''
             filename = os.path.join(os.path.dirname(__file__), 'add.feature')
-            run(filename, self)
+            verify(filename, self)
             # ...
 
         @tags(['advanced'])
         def test_substraction(self):
             ''' Substraction feature '''
             filename = os.path.join(os.path.dirname(__file__), 'substract.feature')
-            run(filename, self)
+            verify(filename, self)
             # ...
 
         @tags(['slow', 'advanced'])
         def test_multiplication(self):
             ''' Multiplication feature '''
             filename = os.path.join(os.path.dirname(__file__), 'multiplication.feature')
-            run(filename, self)
+            verify(filename, self)
             # ...
 
 And run tests only for selected features:
