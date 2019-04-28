@@ -102,7 +102,7 @@ class TOMLConfig:
     def __init__(self, section="default"):
         self.__section = section
         paths = (Path("pyproject.toml"), Path("~/.config/morelia/config.toml"))
-        paths = [path for path in paths if path.exists()]
+        paths = [str(path) for path in paths if path.exists()]
         self.__data = {"wip": False, "matchers": ["regex", "parse", "method"]}
         if paths:
             data = toml.load(paths).get("tool", {}).get("morelia", {}).get(section, {})
