@@ -1,5 +1,5 @@
+import os
 import unittest
-from unittest.mock import Mock, patch
 
 from morelia.decorators import should_skip, tags
 
@@ -36,35 +36,29 @@ class TagsTestCase(unittest.TestCase):
         pass
 
     def test_should_skip(self):
-        for tags_list, pattern in self._skip_data:
-            with patch("morelia.decorators.get_config") as get_config:
-                get_config.return_value.get_tags_pattern.return_value = pattern
-                decorated = tags(tags_list)(self.dummy)
-                self.assertRaises(unittest.SkipTest, decorated)
+        old_morelia_tags = os.environ.get("MORELIA_TAGS", None)
+        try:
+            for tags_list, pattern in self._skip_data:
+                with self.subTest(tags_list=tags_list, pattern=pattern):
+                    os.environ["MORELIA_TAGS"] = pattern
+                    with self.assertRaises(unittest.SkipTest):
+                        decorated = tags(tags_list)(self.dummy)
+                        decorated()
+        finally:
+            if old_morelia_tags is not None:
+                os.environ["MORELIA_TAGS"] = old_morelia_tags
 
     def test_should_not_skip(self):
-        for tags_list, pattern in self._pass_data:
-            with patch("morelia.decorators.get_config") as get_config:
-                get_config.return_value.get_tags_pattern.return_value = pattern
-                decorated = tags(tags_list)(self.dummy)
-                try:
-                    decorated()
-                except unittest.SkipTest:  # pragma: nocover
-                    self.fail("Should not raise SkipTest")  # pragma: nocover
-
-    def test_should_skip_with_given_config(self):
-        for tags_list, pattern in self._skip_data:
-            config = Mock()
-            config.get_tags_pattern.return_value = pattern
-            decorated = tags(tags_list, config=config)(self.dummy)
-            self.assertRaises(unittest.SkipTest, decorated)
-
-    def test_should_not_skip_with_no_pattern_func(self):
-        for tags_list, pattern in self._pass_data:
-            config = Mock()
-            config.get_tags_pattern.return_value = pattern
-            decorated = tags(tags_list, config=config)(self.dummy)
-            try:
-                decorated()
-            except unittest.SkipTest:  # pragma: nocover
-                self.fail("Should not raise SkipTest")  # pragma: nocover
+        old_morelia_tags = os.environ.get("MORELIA_TAGS", None)
+        try:
+            for tags_list, pattern in self._pass_data:
+                with self.subTest(tags_list=tags_list, pattern=pattern):
+                    os.environ["MORELIA_TAGS"] = pattern
+                    decorated = tags(tags_list)(self.dummy)
+                    try:
+                        decorated()
+                    except unittest.SkipTest:  # pragma: nocover
+                        self.fail("Should not raise SkipTest")  # pragma: nocover
+        finally:
+            if old_morelia_tags is not None:
+                os.environ["MORELIA_TAGS"] = old_morelia_tags

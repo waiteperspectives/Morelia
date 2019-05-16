@@ -116,9 +116,7 @@ def verify(script, suite, scenario: str = ".*", config: str = "default") -> None
     conf = TOMLConfig(config)
     script = _coerce_type(script)
     feature = Parser().parse_features(script)
-    execute_script(
-        feature, suite, scenario=scenario, config=conf, formatter=PlainTextFormatter()
-    )
+    execute_script(feature, suite, scenario=scenario, config=conf)
 
 
 def _coerce_type(script):

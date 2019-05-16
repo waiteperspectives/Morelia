@@ -159,7 +159,10 @@ Formatter Classes
 
 import sys
 import time
-from abc import ABCMeta, abstractmethod
+from abc import ABC, abstractmethod
+from io import StringIO
+
+import requests
 
 from morelia.grammar import Feature, Step
 from morelia.visitors import VisitorObserver
@@ -173,43 +176,11 @@ colors = {
 }
 
 
-class IFormatter:
-    """Abstract Base Class for all formatters."""
-
-    __metaclass__ = ABCMeta
-
-    @abstractmethod
-    def output(self, node, line, status, duration):
-        """Method called after execution each step.
-
-        :param node: node representing step
-        :param str line: text of executed step
-        :param str status: execution status
-        :param float duration: step execution duration
-        """
-        pass  # pragma: nocover
-
-
-class NullFormatter(IFormatter):
-    """Formatter that... do nothing."""
-
-    def output(self, node, line, status, duration):
-        """See :py:meth:`IFormatter.output`."""
-        pass
-
-
-class PlainTextFormatter(IFormatter):
-    """Formatter that prints all executed steps in plain text to a given stream."""
-
+class PlainTextFormatter:
     def __init__(self, stream=None):
-        """Initialize formatter.
-
-        :param file stream: file-like stream to output executed steps
-        """
         self._stream = stream if stream is not None else sys.stderr
 
     def output(self, node, line, status, duration):
-        """See :py:meth:`IFormatter.output`."""
         if isinstance(node, Feature):
             self._stream.write("\n")
         if isinstance(node, Step):
@@ -222,10 +193,7 @@ class PlainTextFormatter(IFormatter):
 
 
 class ColorTextFormatter(PlainTextFormatter):
-    """Formatter that prints all executed steps in color to a given stream."""
-
     def output(self, node, line, status, duration):
-        """See :py:meth:`IFormatter.output`."""
         if isinstance(node, Feature):
             self._stream.write("\n")
         if isinstance(node, Step):
@@ -259,3 +227,136 @@ class Writer(VisitorObserver):
 
     def node_started(self, node):
         self.__formatter.output(node, node.interpolated_source(), "", 0)
+
+
+class IOutput(ABC):
+    @abstractmethod
+    def write(self, text):  # pragma: nocover
+        pass
+
+    @abstractmethod
+    def close(self):  # pragma: nocover
+        pass
+
+
+class FileOutput(IOutput):
+    default_buffered = True
+
+    def __init__(self, path, open_func=open):
+        self._path = path
+        self.__open = open_func
+
+    def __eq__(self, other):
+        return (self.__class__ == other.__class__) and (self._path == other._path)
+
+    def write(self, text):
+        file = self._get_file()
+        file.write(text)
+        file.flush()
+
+    def close(self):
+        self._get_file().close()
+
+    def _get_file(self):
+        try:
+            return self.__file
+        except AttributeError:
+            self.__file = self.__open(self._path, "w")
+            return self.__file
+
+
+class TerminalOutput(FileOutput):
+    default_buffered = False
+
+    def __init__(self, dest="stderr"):
+        self._path = dest
+
+    def _get_file(self):
+        if self._path == "stdout":
+            return sys.stdout
+        else:
+            return sys.stderr
+
+    def close(self):
+        pass
+
+
+class RemoteOutput(IOutput):
+    default_buffered = True
+
+    def __init__(self, url, transport=requests):
+        self._url = url
+        self.__transport = transport
+
+    def __eq__(self, other):
+        return (self.__class__ == other.__class__) and (self._url == other._url)
+
+    def write(self, text):
+        self.__transport.post(self._url, text)
+
+    def close(self):
+        pass
+
+
+class Buffered(IOutput):
+    def __init__(self, wrapped: IOutput):
+        self._wrapped = wrapped
+        self.__buffer = StringIO()
+
+    def __eq__(self, other):
+        return (self.__class__ == other.__class__) and (self._wrapped == other._wrapped)
+
+    def write(self, text):
+        self.__buffer.write(text)
+
+    def close(self):
+        self._wrapped.write(self.__buffer.getvalue())
+        self.__buffer.close()
+        self._wrapped.close()
+
+
+class TextFormat(VisitorObserver):
+    def __init__(self, output: IOutput, color=False):
+        self._color = color
+        self._output = output
+
+    def __eq__(self, other):
+        return (
+            (self.__class__ == other.__class__)
+            and (self._color == other._color)
+            and (self._output == other._output)
+        )
+
+    def step_started(self, node):
+        self.status = "pass"
+        self.start_time = time.time()
+
+    def step_failed(self, node):
+        self.status = "fail"
+
+    def step_errored(self, node):
+        self.status = "error"
+
+    def step_finished(self, node):
+        duration = time.time() - self.start_time
+        line = node.interpolated_source()
+        if self._color:
+            text = "{}{:<60} # {:.3f}s{}\n".format(
+                colors[self.status], line.strip("\n"), duration, colors["reset"]
+            )
+        else:
+            text = "{:<60} # {:<5} {:.3f}s\n".format(
+                line.strip("\n"), self.status, duration
+            )
+        self._output.write(text)
+
+    def feature_started(self, node):
+        self._output.write("\n")
+
+    def node_started(self, node):
+        line = node.interpolated_source()
+        text = line.strip("\n") + "\n"
+        self._output.write(text)
+
+    def verify_finished(self):
+        self._output.close()
