@@ -34,7 +34,7 @@ Scenario: Add two numbers - table
 import unittest
 
 from calculator import Calculator
-from morelia import run
+from morelia import verify
 
 
 class CalculatorDocstringTestCase(unittest.TestCase):
@@ -42,13 +42,7 @@ class CalculatorDocstringTestCase(unittest.TestCase):
 
     def test_addition(self):
         """Addition feature."""
-        run(
-            __file__,
-            self,
-            as_str=__doc__,
-            scenario="Subsequent additions",
-            verbose=True,
-        )
+        verify(__doc__, self, scenario="Subsequent additions")
 
     def setUp(self):
         self.calculator = Calculator()

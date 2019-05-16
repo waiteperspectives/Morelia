@@ -3,6 +3,7 @@ import re
 from pathlib import Path
 from unittest import TestCase
 
+from morelia import File
 from morelia.decorators import tags
 from morelia.exceptions import MissingStepError
 from morelia.grammar import And, Feature, Given, Then, When
@@ -100,17 +101,17 @@ class MoreliaSuite(TestCase):
 
     def test_record_filename(self):
         filename = features_dir / "morelia.feature"
-        feature = Parser().parse_file(filename)
+        feature = Parser().parse_features(File(filename))
         assert feature.__class__ == Feature
-        assert feature.filename == filename
+        assert str(filename) == feature.filename
         step = feature.steps[3].steps[1]
-        assert filename == step.get_filename()
+        assert str(filename) == step.get_filename()
 
     def test_format_faults_like_python_errors(self):
         filename = features_dir / "morelia.feature"
-        feature = Parser().parse_file(filename)
+        feature = Parser().parse_features(File(filename))
         step = feature.steps[3].steps[1]
-        assert filename == step.get_filename()
+        assert str(filename) == step.get_filename()
         omen = "The Alpine glaciers move"
         diagnostic = step.format_fault(omen)
         parent_reconstruction = step.parent.source.strip("\n")
@@ -127,7 +128,7 @@ class MoreliaSuite(TestCase):
         assert expect == diagnostic
 
     def test_evaluate_file(self):
-        feature = Parser().parse_file(features_dir / "morelia.feature")
+        feature = Parser().parse_features(File(features_dir / "morelia.feature"))
         execute_script(feature, self)
 
     def setUpScenario(self):

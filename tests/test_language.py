@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-from morelia.parser import Parser, execute_script
+from morelia import verify
 
 
 class LanguageTest(TestCase):
@@ -16,8 +16,7 @@ class LanguageTest(TestCase):
                 Gdy wykonuję akcję
                 Wtedy weryfikuję wynik
         """
-        feature = Parser().parse_feature(source)[0]
-        execute_script(feature, self)
+        verify(source, self)
         assert ["given", "when", "then"] == self.executed
 
     def step_wykonany_zosta_krok_przygotowujacy(self):

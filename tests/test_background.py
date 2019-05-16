@@ -2,9 +2,8 @@
 from pathlib import Path
 from unittest import TestCase
 
+from morelia import verify
 from morelia.decorators import tags
-from morelia.grammar import Scenario
-from morelia.parser import Parser, execute_script
 
 features_dir = Path(__file__).parent / "features"
 
@@ -13,12 +12,11 @@ features_dir = Path(__file__).parent / "features"
 class BackgroundTest(TestCase):
     def setUp(self):
         self.__steps_executed = []
+        self.__scenarios_count = 0
 
     def test_background(self):
         filename = features_dir / "background.feature"
-        feature = Parser().parse_file(filename)
-        self.__scenarios_num = sum(1 for s in feature.steps if isinstance(s, Scenario))
-        execute_script(feature, self)
+        verify(filename, self)
 
     def step_I_have_some_background_steps_defined(self):
         self.__steps_executed.append("I have some background steps defined")
@@ -29,6 +27,7 @@ class BackgroundTest(TestCase):
 
     def step_scenario_is_executed(self):
         self.__steps_executed.append("scenario is executed")
+        self.__scenarios_count += 1
 
     def step_all_background_steps_are_executed_before_any_step_defined_in_scenario(
         self
@@ -42,6 +41,7 @@ class BackgroundTest(TestCase):
 
     def step_other_scenario_is_executed(self):
         self.__steps_executed.append("other scenario is executed")
+        self.__scenarios_count += 1
 
     def step_background_steps_are_executed_again_before_every_scenario(self):
         background_step = "I have some background steps defined"
@@ -78,13 +78,13 @@ class BackgroundTest(TestCase):
         assert angle_variable == self.__angle_variable
 
     def step_all_scenarios_are_executed(self):
-        pass
+        self.__scenarios_count += 1
 
     def step_background_steps_will_be_executed_once_per_every_scenario_case(self):
         assert (
-            self.__scenarios_num <= self.__background_step_ran
+            self.__scenarios_count <= self.__background_step_ran
         ), "Background step not executed for every scenario"
 
         assert (
-            self.__scenarios_num >= self.__background_step_ran
+            self.__scenarios_count >= self.__background_step_ran
         ), "Background step executed more then once for every scenario"

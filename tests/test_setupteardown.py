@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 from unittest import TestCase
 
+from morelia import verify
 from morelia.decorators import tags
-from morelia.parser import Parser, execute_script
 
 
 @tags(["acceptance"])
@@ -19,9 +19,8 @@ class SetUpTearDownTest(TestCase):
                 Scenario: failing scenario
                     When step fails
         """
-        steps = Parser().parse_feature(source)
         try:
-            execute_script(steps[0], self)
+            verify(source, self)
         except AssertionError:
             pass
         expected_sequence = [

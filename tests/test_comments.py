@@ -2,7 +2,7 @@
 from pathlib import Path
 from unittest import TestCase
 
-from morelia import run
+from morelia import verify
 from morelia.decorators import tags
 
 features_dir = Path(__file__).parent / "features"
@@ -12,7 +12,7 @@ features_dir = Path(__file__).parent / "features"
 class CommentsTest(TestCase):
     def test_comments(self):
         filename = features_dir / "comments.feature"
-        run(filename, self)
+        verify(filename, self)
 
     def step_scenario_will_pass(self):
         assert True

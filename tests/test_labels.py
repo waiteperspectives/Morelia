@@ -2,8 +2,8 @@
 from pathlib import Path
 from unittest import TestCase
 
+from morelia import verify
 from morelia.decorators import tags
-from morelia.parser import Parser, execute_script
 
 features_dir = Path(__file__).parent / "features"
 
@@ -15,8 +15,7 @@ class LabelTest(TestCase):
 
     def test_labels(self):
         filename = features_dir / "labels.feature"
-        feature = Parser().parse_file(filename)
-        execute_script(feature, self)
+        verify(filename, self)
 
     def step_step_which_accepts__labels_variable_is_executed(self, _labels=None):
         self.__labels = _labels
