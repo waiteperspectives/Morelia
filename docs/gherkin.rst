@@ -198,7 +198,7 @@ Below scenario:
            | 101.00 | Rhode Island           |  0.00 | 
            |  99.00 | Kansas                 |  8.25 | 
 
-Is equvalent of series of scenarios:
+Is equivalent of series of scenarios:
 
 .. code-block:: cucumber
 
@@ -257,7 +257,7 @@ In order to accomplish this you can use doc-strings syntax:
             120
             """
 
-Text enclosed within tripple double-quotes will be attached as step's data.
+Text enclosed within triple double-quotes will be attached as step's data.
 
 .. note:: **For programmers**
 

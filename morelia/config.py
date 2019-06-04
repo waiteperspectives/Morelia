@@ -1,6 +1,34 @@
 """
 Configuration
 -------------
+
+Morelia looks for configuration file "pyproject.toml" in current directory.
+If it is not present then it looks for "~/.config/morelia/config.toml".
+
+You can bypass that setting environment variable MORELIA_CONFIG to the path to config file.
+
+Morelia reads it's configuration from "tool.morelia.<section>" namespace.
+You can give section part when calling "verify" method.
+
+E.g. if you have configuration:
+
+.. code-block:: toml
+
+    [tool.morelia.default]
+    wip=false
+
+    [tool.morelia.myconfig]
+    wip=true
+
+and call "verify" as:
+
+.. code-block:: python
+
+   verify(filename, self, config="myconfig")
+
+Then it would be run with wip (work in progress) mode active.
+
+If no config is passed, then "default" is assumed.
 """
 
 import os
