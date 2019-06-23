@@ -101,17 +101,21 @@ step:
 
         And I press add
 
-Own matchers
-^^^^^^^^^^^^
+Choosing which matchers to use
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-You can limit matchers for only some types or use your own matchers.
-Matcher classes can be passed to :py:func:`morelia.run` method as keyword parameter:
+By default morelia search for methods using in order:
 
-.. code-block:: python
+- format-like strings matcher ("parse" matcher)
+- regex matcher ("regex" matcher)
+- method names matcher ("method" matcher)
 
-   from morelia.matchers import RegexpStepMatcher
-   # ...
-   run(filename, self, matchers=[MyOwnMatcher, RegexpStepMatcher])
+You can override it in your pyproject.toml file. E.g.:
+
+.. code-block:: toml
+
+    [tool.morelia.default]
+    matchers=["regex", "parse"]
 
 .. _matching-tables:
 

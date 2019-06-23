@@ -75,9 +75,8 @@ And run tests only for selected features:
     OK (skipped=2)
 """
 
+import os
 import unittest
-
-from morelia.config import get_config
 
 
 def should_skip(tags_list, pattern):
@@ -92,15 +91,11 @@ def should_skip(tags_list, pattern):
     return False
 
 
-def tags(tags_list, config=None):
+def tags(tags_list):
     """Skip decorated test methods or classes if tags matches.
-
-    Tags are matched to patterns provided by config object.
 
     :param list tags_list: list of tags for test
     :param morelia.config.Config config: optional configuration object
     """
-    if config is None:
-        config = get_config()
-    pattern = config.get_tags_pattern()
+    pattern = os.environ.get("MORELIA_TAGS", "")
     return unittest.skipIf(should_skip(tags_list, pattern), "Tags not matched")

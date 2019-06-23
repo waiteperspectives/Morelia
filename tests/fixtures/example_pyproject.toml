@@ -1,0 +1,44 @@
+[tool.morelia.default] 
+wip=false 
+matchers=["parse", "regex", "method"] 
+
+[[tool.morelia.terminals.output]]
+formatter.format="text"
+# formatter.color=false - default
+writer.type="terminal"
+# writer.buffered=false - default
+# writer.dest="stderr" - default
+
+[[tool.morelia.terminals.output]]
+formatter.format="text"
+writer.type="terminal"
+writer.dest="stdout"
+
+[[tool.morelia.terminals.output]]
+formatter.format="text"
+formatter.color=true
+writer.type="terminal"
+
+[[tool.morelia.terminals.output]]
+formatter.format="text"
+writer.type="file"
+writer.path="terminal.log"
+# writer.buffered=true - default
+
+[[tool.morelia.terminals.output]]
+formatter.format="text"
+writer.type="file"
+writer.path="terminal.log"
+writer.buffered=false
+
+[[tool.morelia.terminals.output]]
+formatter.format="text"
+writer.type="remote"
+writer.url="http://example.com/terminal.log"
+# writer.buffered=true - default
+
+[[tool.morelia.terminals.output]]
+formatter.format="text"
+writer.type="remote"
+writer.url="http://example.com/terminal.log"
+writer.buffered=false

@@ -85,20 +85,20 @@ def verify(script, suite, scenario: str = ".*", config: str = "default") -> None
 
     .. code-block:: python
 
-        >>> verify('http://example.com/calculator.feature', test_case_with_steps)
+        >>> verify('http://example.com/calculator', test_case_with_steps)
 
     Two last invocations will work only for single line strings.
     If it starts with "http[s]://" it is considered an url.
     If it ends with ".feature" it is considered a file.
 
-    To explicity mark what type of parameter it can be wrapped in helper classes:
+    To explicity mark parameter's type it can be wrapped in helper classes:
 
     - :py:func:`File`
     - :py:func:`Url`
     - :py:func:`Text`
 
         >>> from morelia import verify, File, Text, Url
-        >>> verify(File('calculator.feature'), test_case_with_steps)
+        >>> verify(File('calculator.txt'), test_case_with_steps)
         >>> verify(Url('http://example.com/calculator.feature'), test_case_with_steps)
         >>> verify(
         ...    Text(\"""
@@ -116,9 +116,7 @@ def verify(script, suite, scenario: str = ".*", config: str = "default") -> None
     conf = TOMLConfig(config)
     script = _coerce_type(script)
     feature = Parser().parse_features(script)
-    execute_script(
-        feature, suite, scenario=scenario, config=conf, formatter=PlainTextFormatter()
-    )
+    execute_script(feature, suite, scenario=scenario, config=conf)
 
 
 def _coerce_type(script):
