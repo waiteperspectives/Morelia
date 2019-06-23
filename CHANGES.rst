@@ -10,12 +10,16 @@ and this project adheres to `Semantic Versioning <http://semver.org/>`_.
 Version: Unreleased
 ===============================================================================
 
+Version: 0.9.0 (2019-06-23)
+===============================================================================
+
 ADDED
 -----
 
   * setUpFeature/tearDownFeature, setUpScenario/tearDownScenario, setUpStep/tearDownStep (#105)
   * hiding irrelevant morelia's code from tracebacks (#111)
   * new recommended "verify" function with API simpler than in run (#118)
+  * configuration inside pyproject.toml (#119)
 
 CHANGED
 -------
