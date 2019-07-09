@@ -13,7 +13,7 @@ import textwrap
 
 from morelia.breadcrumbs import Breadcrumbs
 from morelia.config import TOMLConfig
-from morelia.exceptions import InvalidScenarioMatchingPattern, MissingStepError
+from morelia.exceptions import InvalidScenarioMatchingPattern
 from morelia.formatters import Writer
 from morelia.grammar import (
     And,
@@ -30,7 +30,7 @@ from morelia.grammar import (
     When,
 )
 from morelia.i18n import TRANSLATIONS
-from morelia.visitors import TestVisitor
+from morelia.visitors import MissingFinder, TestVisitor
 
 
 def execute_script(
@@ -93,18 +93,10 @@ def _create_matchers_chain(suite, matcher_classes):
     return root_matcher
 
 
-def _find_missing_steps(feature, matcher, scenario_re):
-    not_matched = {}  # "ordered dict/set" since 3.6 ;)
-    for step in feature.get_all_steps():
-        try:
-            step.find_method(matcher)
-        except MissingStepError as e:
-            parent = step.parent
-            if not isinstance(parent, Scenario) or scenario_re.match(
-                step.parent.predicate
-            ):
-                not_matched[e.suggest] = True
-    return not_matched.keys()
+def _find_missing_steps(script_root, matchers, scenario_re):
+    missing_steps_finder = MissingFinder(matchers, scenario_re)
+    script_root.accept(missing_steps_finder)
+    return missing_steps_finder.get_not_matched_steps()
 
 
 def __prepare_writers(config, formatter, test_visitor):

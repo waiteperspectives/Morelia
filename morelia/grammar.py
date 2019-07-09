@@ -39,6 +39,10 @@ class Visitor(ABC):  # pragma: nocover
     def visit_comment(self, node: "Comment") -> None:
         pass
 
+    def visit_children(self, children: Iterable["Node"]) -> None:
+        for child in children:
+            child.accept(self)
+
 
 class Node(ABC):
     allowed_parents = ()  # type: Iterable[Type[Node]]

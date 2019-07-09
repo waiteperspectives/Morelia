@@ -107,10 +107,10 @@ class TestVisitor(ObservableVisitor, Visitor):
         pass
 
     def visit_feature(self, node: Feature, children: Iterable[Node] = []) -> None:
+        self.feature_started(node)
         self.setUpFeature()
         try:
-            self.feature_started(node)
-            self.__visit_children(children)
+            self.visit_children(children)
         finally:
             self.tearDownFeature()
             self.feature_finished(node)
@@ -118,10 +118,10 @@ class TestVisitor(ObservableVisitor, Visitor):
     def visit_scenario(self, node: Scenario, children: Iterable[Node] = []) -> None:
         if not self.__scenario_re.match(node.predicate):
             return
+        self.scenario_started(node)
         self.setUpScenario()
         try:
-            self.scenario_started(node)
-            self.__visit_children(children)
+            self.visit_children(children)
         finally:
             self.tearDownScenario()
             self.scenario_finished(node)
@@ -131,7 +131,7 @@ class TestVisitor(ObservableVisitor, Visitor):
         self.setUpStep()
         try:
             self.__execute_step(node)
-            self.__visit_children(children)
+            self.visit_children(children)
         except (MissingStepError, AssertionError):
             self.step_failed(node)
             raise
@@ -154,14 +154,38 @@ class TestVisitor(ObservableVisitor, Visitor):
         method(*args, **kwargs)
 
     def visit(self, node: Node, children: Iterable[Node] = []) -> None:
+        self.node_started(node)
         try:
-            self.node_started(node)
-            self.__visit_children(children)
+            self.visit_children(children)
         finally:
             self.node_finished(node)
 
     visit_background = visit_row = visit_examples = visit_comment = visit
 
-    def __visit_children(self, children: Iterable[Node]) -> None:
-        for child in children:
-            child.accept(self)
+
+class MissingFinder(Visitor):
+    def __init__(self, matcher, scenario_re):
+        super().__init__()
+        self.__not_matched = {}
+        self.__matcher = matcher
+        self.__scenario_re = scenario_re
+
+    def get_not_matched_steps(self):
+        return self.__not_matched.keys()
+
+    def visit_scenario(self, node: Scenario, children: Iterable[Node] = []) -> None:
+        if not self.__scenario_re.match(node.predicate):
+            return
+        self.visit_children(children)
+
+    def visit_step(self, node: Step, children: Iterable[Node] = []) -> None:
+        try:
+            node.find_method(self.__matcher)
+        except MissingStepError as e:
+            self.__not_matched[e.suggest] = True
+
+    def visit(self, node: Node, children: Iterable[Node] = []) -> None:
+        self.visit_children(children)
+
+    visit_feature = visit_background = visit
+    visit_row = visit_examples = visit_comment = visit
