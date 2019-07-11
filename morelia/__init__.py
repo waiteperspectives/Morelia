@@ -8,7 +8,7 @@ from morelia.config import TOMLConfig
 from morelia.formatters import ColorTextFormatter, PlainTextFormatter
 from morelia.parser import Parser, execute_script
 
-__version__ = "0.9.1"
+__version__ = "0.9.2"
 
 
 def has_color_support():
