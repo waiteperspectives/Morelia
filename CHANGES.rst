@@ -10,6 +10,11 @@ and this project adheres to `Semantic Versioning <http://semver.org/>`_.
 Version: Unreleased
 ===============================================================================
 
+FIXED
+-----
+
+  * matching steps with augmented predicate (#123)
+
 Version: 0.9.1 (2019-06-25)
 ===============================================================================
 
