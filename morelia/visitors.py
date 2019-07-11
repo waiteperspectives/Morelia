@@ -184,3 +184,6 @@ class StepMatcherVisitor(IVisitor):
         if suggest:
             diagnostic = u'Cannot match steps:\n\n{}'.format(suggest)
             self._suite.fail(to_docstring(diagnostic))
+
+    def permute_schedule(self, node):
+        return node.permute_schedule()

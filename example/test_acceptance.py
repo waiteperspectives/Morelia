@@ -31,7 +31,7 @@ class CalculatorTestCase(unittest.TestCase):
         self.calculator.on()
 
     def step_I_enter_a_number_into_the_calculator(self, number):
-        r'I enter "(.+)" into the calculator'  # match by regexp
+        r'I enter "(\d+)" into the calculator'  # match by regexp
         self.calculator.push(int(number))
 
     def step_I_press_add(self):  # matched by method name
