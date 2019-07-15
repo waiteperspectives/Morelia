@@ -18,7 +18,8 @@ if six.PY2:
         if len(exc.args):
             message = exc.args[0]
             if isinstance(message, unicode):  # noqa
-                exc.args = (message.encode(sys.stderr.encoding or "ascii", "xmlcharrefreplace"),) + exc.args[1:]
+                encoding = getattr(sys.stderr, 'encoding', None) or "ascii"
+                exc.args = (message.encode(encoding, "xmlcharrefreplace"),) + exc.args[1:]
 
     def to_docstring(text):
         return text.encode('utf-8')
