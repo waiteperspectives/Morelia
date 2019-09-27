@@ -4,4 +4,4 @@ idna==2.8
 parse==1.12.1
 requests==2.22.0
 toml==0.10.0
-urllib3==1.25.5
+urllib3==1.25.6
