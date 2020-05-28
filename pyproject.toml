@@ -24,7 +24,7 @@ requests = "^2.21"
 toml = "^0.10.0"
 
 [tool.poetry.dev-dependencies]
-pytest = "^3.0"
+pytest = "^5.0"
 tox = "^3.7"
 pytest-cov = "^2.6"
 pytest-flake8 = "^1.0"
