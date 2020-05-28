@@ -239,5 +239,8 @@ Credits
 
 This package was created with Cookiecutter_ and the `kidosoft/cookiecutter-pypackage`_ project template.
 
+[ ~ Dependencies scanned by `PyUp.io`_ ~ ]
+
 .. _Cookiecutter: https://github.com/audreyr/cookiecutter
 .. _`kidosoft/cookiecutter-pypackage`: https://github.com/kidosoft/cookiecutter-pypackage
+.. _`PyUp.io`: https://pyup.io/
