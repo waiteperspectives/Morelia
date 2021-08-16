@@ -292,6 +292,8 @@ from abc import ABCMeta, abstractmethod
 
 import parse
 
+PAT = "(^step_|^given_|^when_|^then_)"
+
 
 class IStepMatcher:
     """Matches methods to steps.
@@ -301,7 +303,7 @@ class IStepMatcher:
 
     __metaclass__ = ABCMeta
 
-    def __init__(self, suite, step_pattern="^step_"):
+    def __init__(self, suite, step_pattern=PAT):
         self._suite = suite
         self._matcher = re.compile(step_pattern)
         self._next = None
@@ -446,7 +448,7 @@ class MethodNameStepMatcher(IStepMatcher):
 
     def __find_matching_methods(self, step_methods, predicate):
         clean = re.sub(r"[^\w]", "_?", predicate)
-        pattern = "^step_" + clean + "$"
+        pattern = PAT + clean + "$"
         regexp = re.compile(pattern)
         for method_name in step_methods:
             if regexp.match(method_name):
