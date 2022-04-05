@@ -15,20 +15,8 @@ from morelia.breadcrumbs import Breadcrumbs
 from morelia.config import TOMLConfig
 from morelia.exceptions import InvalidScenarioMatchingPattern
 from morelia.formatters import Writer
-from morelia.grammar import (
-    And,
-    Background,
-    But,
-    Comment,
-    Examples,
-    Feature,
-    Given,
-    Row,
-    Scenario,
-    Step,
-    Then,
-    When,
-)
+from morelia.grammar import (And, Background, But, Comment, Examples, Feature,
+                             Given, Row, Scenario, Step, Then, When)
 from morelia.i18n import TRANSLATIONS
 from morelia.visitors import MissingFinder, TestVisitor
 
