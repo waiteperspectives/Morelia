@@ -359,12 +359,11 @@ class IStepMatcher:
         with open("/tmp/test.py", "w") as f:
             f.write(str(extra_arguments))
         method_name = self.slugify(predicate)
-        suggest = "    def {prefix}_{method_name}(self{args}):\n        {docstring}\n\n        raise NotImplementedError('{predicate}')\n\n".format(
+        suggest = "    def {prefix}_{method_name}(self{args}):\n        {docstring}\n        pass\n\n".format(
             prefix=prefix,
             method_name=method_name,
             args=extra_arguments,
             docstring=docstring,
-            predicate=predicate.replace("'", "\\'"),
         )
         return suggest, method_name, docstring
 
@@ -470,8 +469,8 @@ class MethodNameStepMatcher(IStepMatcher):
     def suggest(self, predicate, prefix="step"):
         """See :py:meth:`IStepMatcher.suggest`."""
         method_name = self.slugify(predicate)
-        suggest = "    def {prefix}_{method_name}(self):\n\n        raise NotImplementedError('{predicate}')\n\n".format(
-            prefix=prefix, method_name=method_name, predicate=predicate.replace("'", "\\'")
+        suggest = "    def {prefix}_{method_name}(self):\n        pass\n\n".format(
+            prefix=prefix, method_name=method_name
         )
         return suggest, method_name, ""
 

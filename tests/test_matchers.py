@@ -229,7 +229,7 @@ class MethodNameStepMatcherSuggestTestCase(unittest.TestCase):
         """ Scenariusz: suggest """
         # Arrange
         obj = MethodNameStepMatcher(sentinel.suite)
-        pattern = "    def step_%(method_name)s(self%(args)s):\n\n        raise NotImplementedError('%(predicate)s')\n\n"
+        pattern = "    def step_%(method_name)s(self%(args)s):\n        pass\n\n"
         test_data = [
             ("tastes great", "tastes_great", ""),
             ("less filling", "less_filling", ""),
@@ -405,7 +405,7 @@ class DocStringStepMatcherSuggestTestCase(unittest.TestCase):
         # Arrange
         obj = RegexpStepMatcher(sentinel.suite)
         # Act
-        pattern = "    def step_%(method_name)s(self%(args)s):\n        %(docstring)s\n\n        raise NotImplementedError('%(predicate)s')\n\n"
+        pattern = "    def step_%(method_name)s(self%(args)s):\n        %(docstring)s\n        pass\n\n"
         test_data = [
             ("tastes great", "tastes_great", r"r'tastes great'", ""),
             ("less filling", "less_filling", r"r'less filling'", ""),
@@ -578,7 +578,7 @@ class ParseStepMatcherSuggestTestCase(unittest.TestCase):
         # Arrange
         obj = ParseStepMatcher(sentinel.suite)
         # Act
-        pattern = "    def step_%(method_name)s(self%(args)s):\n        %(docstring)s\n\n        raise NotImplementedError('%(predicate)s')\n\n"
+        pattern = "    def step_%(method_name)s(self%(args)s):\n        %(docstring)s\n        pass\n\n"
         test_data = [
             ("tastes great", "tastes_great", r"r'tastes great'", ""),
             ("less filling", "less_filling", r"r'less filling'", ""),
