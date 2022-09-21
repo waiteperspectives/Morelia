@@ -346,7 +346,7 @@ class IStepMatcher:
         """
         pass  # pragma: nocover
 
-    def suggest(self, predicate):
+    def suggest(self, predicate, prefix="step"):
         """Suggest method definition.
 
         Method is used to suggest methods that should be implemented.
@@ -356,8 +356,11 @@ class IStepMatcher:
         :rtype: (str, str, str)
         """
         docstring, extra_arguments = self._suggest_doc_string(predicate)
+        with open("/tmp/test.py", "w") as f:
+            f.write(str(extra_arguments))
         method_name = self.slugify(predicate)
-        suggest = "    def step_{method_name}(self{args}):\n        {docstring}\n\n        raise NotImplementedError('{predicate}')\n\n".format(
+        suggest = "    def {prefix}_{method_name}(self{args}):\n        {docstring}\n\n        raise NotImplementedError('{predicate}')\n\n".format(
+            prefix=prefix,
             method_name=method_name,
             args=extra_arguments,
             docstring=docstring,
@@ -464,11 +467,11 @@ class MethodNameStepMatcher(IStepMatcher):
             method, args, kwargs = best_match
             return method, args, kwargs
 
-    def suggest(self, predicate):
+    def suggest(self, predicate, prefix="step"):
         """See :py:meth:`IStepMatcher.suggest`."""
         method_name = self.slugify(predicate)
-        suggest = "    def step_{method_name}(self):\n\n        raise NotImplementedError('{predicate}')\n\n".format(
-            method_name=method_name, predicate=predicate.replace("'", "\\'")
+        suggest = "    def {prefix}_{method_name}(self):\n\n        raise NotImplementedError('{predicate}')\n\n".format(
+            prefix=prefix, method_name=method_name, predicate=predicate.replace("'", "\\'")
         )
         return suggest, method_name, ""
 

@@ -14,7 +14,7 @@ Scenario: When we challenge Morelia with a Step with no matching
           entry in your test suite, supply a helpful error message
     Given a feature file with "Given your nose is on fire"
     When Morelia evaluates the file
-    Then it prints a diagnostic containing "    def step_your_nose_is_on_fire"
+    Then it prints a diagnostic containing "    def given_your_nose_is_on_fire"
     And the second line contains "your nose is on fire"
 
 Scenario: When we challenge Morelia with a Step with a linefeed in it
@@ -22,7 +22,7 @@ Scenario: When we challenge Morelia with a Step with a linefeed in it
     Given a feature file with "Given no line
                                           feeds"
     When Morelia evaluates the file
-    Then it prints a diagnostic containing "    def step_no_line_feeds"
+    Then it prints a diagnostic containing "    def given_no_line_feeds"
     And the second line contains "no line\nfeeds"
 
 Scenario: Fail to match prose if feature file has bad strings

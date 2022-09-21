@@ -60,6 +60,20 @@ class Node(ABC):
         self.parent = self.__find_parent(predecessors)
         self.__connect_to_parent()
         self._validate_predicate()
+        self.prefix = self.determine_prefix(predecessors)
+
+    def determine_prefix(self, predecessors):
+        def namer(obj):
+            return obj.__class__.__name__.lower()
+
+        this_prefix = namer(self)
+        if this_prefix == "and":
+            try:
+                return namer(predecessors[-1])
+            except IndexError:
+                return "step"
+        else:
+            return this_prefix
 
     def __connect_to_parent(self):
         if self.parent:
@@ -279,7 +293,7 @@ class Step(RowParent):
         if method:
             return method, args, kwargs
 
-        suggest, method_name, docstring = matcher.suggest(predicate)
+        suggest, method_name, docstring = matcher.suggest(predicate, self.prefix)
         raise MissingStepError(predicate, suggest, method_name, docstring)
 
     def interpolated_source(self):

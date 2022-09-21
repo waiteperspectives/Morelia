@@ -17,17 +17,17 @@ help:
 ci: dist install develop test docs
 
 dist: clean ## builds source and wheel package
-	poetry build
+	python3 -m poetry build
 	ls -l dist
 
 install:
 	pip install -U dist/*.whl
 
 develop:  ## create virtualenv and install dependencies
-	poetry install
+	python3 -m poetry install
 
 test: ## run tests quickly with the default Python
-	poetry run pytest
+	python3 -m poetry run pytest
 
 test-all: clean tox docs ## test every Python version with tox
 
@@ -53,11 +53,11 @@ clean-test: ## remove test and coverage artifacts
 	rm -fr htmlcov/
 
 tox:
-	poetry run tox --skip-missing-interpreters
+	python3 -m poetry run tox --skip-missing-interpreters
 
 docs: ## generate Sphinx HTML documentation
-	poetry run $(MAKE) -C docs clean
-	poetry run $(MAKE) -C docs html
+	python3 -m poetry run $(MAKE) -C docs clean
+	python3 -m poetry run $(MAKE) -C docs html
 
 release: ## package and upload a release
-	poetry publish
+	python3 -m poetry publish
